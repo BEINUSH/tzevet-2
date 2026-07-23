@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSocket, emitAsync } from "@/lib/socketClient";
-import { loadHostSession } from "@/lib/storage";
+import { getSocket, emitAsync, emitWithTimeout } from "@/lib/socketClient";
+import { clearHostSession, loadHostSession } from "@/lib/storage";
 import { useSound } from "@/lib/useSound";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +29,7 @@ interface ModAnswer {
 
 export default function HostControlPage() {
   const params = useParams<{ code: string }>();
+  const router = useRouter();
   const code = (params.code || "").toUpperCase();
   const sound = useSound();
 
@@ -38,6 +39,7 @@ export default function HostControlPage() {
   const [busy, setBusy] = useState(false);
   const [modAnswers, setModAnswers] = useState<ModAnswer[] | null>(null);
   const [joinUrl, setJoinUrl] = useState("");
+  const [confirmingClose, setConfirmingClose] = useState(false);
 
   useEffect(() => {
     setJoinUrl(`${window.location.origin}/join?code=${code}`);
@@ -78,7 +80,7 @@ export default function HostControlPage() {
   async function call<T extends { ok: boolean; error?: string }>(event: string, payload: Record<string, unknown> = {}) {
     if (!hostToken) return;
     setBusy(true);
-    const res = await emitAsync<T>(event, { code, hostToken, ...payload });
+    const res = await emitWithTimeout<T>(event, { code, hostToken, ...payload });
     setBusy(false);
     if (!res.ok && res.error) setError(res.error);
     else setError("");
@@ -88,6 +90,13 @@ export default function HostControlPage() {
   async function openModeration() {
     const res = await call<{ ok: boolean; answers?: ModAnswer[] }>("host:anonymousModerationView");
     if (res?.ok && res.answers) setModAnswers(res.answers);
+  }
+
+  async function closeRoom() {
+    const res = await call<{ ok: boolean; error?: string }>("host:endSession");
+    if (!res?.ok) return;
+    clearHostSession();
+    router.push("/host");
   }
 
   if (error && !state) {
@@ -114,12 +123,16 @@ export default function HostControlPage() {
 
   return (
     <main className="flex-1 flex flex-col gap-5 px-4 py-6 max-w-2xl mx-auto w-full">
-      <header className="flex items-center justify-between">
+      <Link href="/host" className="text-brand-muted hover:text-brand-white text-sm self-start">
+        ← חזרה לרשימת האירועים
+      </Link>
+
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-black gold-text">{state.eventName}</h1>
           <p className="text-brand-muted text-sm">קוד חדר: {state.code}</p>
         </div>
-        <a href={`/present/${state.code}`} target="_blank" rel="noreferrer">
+        <a href={`/present/${state.code}`} target="_blank" rel="noreferrer" className="self-start sm:self-auto">
           <Button size="sm" variant="secondary">
             🖥️ מסך הקרנה
           </Button>
@@ -284,6 +297,28 @@ export default function HostControlPage() {
           </Button>
         </Card>
       )}
+
+      <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-brand-danger/30">
+        <div>
+          <p className="font-bold">סיום ונעילת החדר</p>
+          <p className="text-brand-muted text-sm">המשתתפים ינותקו ולא יהיה ניתן להמשיך במשחק.</p>
+        </div>
+        {confirmingClose ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-brand-muted">לסגור את החדר?</span>
+            <Button variant="danger" size="sm" disabled={busy} onClick={closeRoom}>
+              כן, סגור
+            </Button>
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setConfirmingClose(false)}>
+              ביטול
+            </Button>
+          </div>
+        ) : (
+          <Button variant="danger" size="sm" disabled={busy} onClick={() => setConfirmingClose(true)}>
+            סגירת החדר
+          </Button>
+        )}
+      </Card>
     </main>
   );
 }
