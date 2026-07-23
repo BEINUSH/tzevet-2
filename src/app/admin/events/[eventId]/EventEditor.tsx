@@ -73,9 +73,14 @@ export function EventEditor({ event }: { event: EventWithRounds }) {
 
   return (
     <main className="flex-1 flex flex-col gap-6 px-4 py-8 max-w-3xl mx-auto w-full">
-      <Link href="/admin" className="text-brand-muted underline text-sm">
-        ← כל האירועים
-      </Link>
+      <nav className="flex items-center justify-between text-sm">
+        <Link href="/admin" className="text-brand-muted hover:text-brand-white">
+          ← חזרה לכל האירועים
+        </Link>
+        <Link href="/" className="text-brand-muted hover:text-brand-white">
+          מסך הבית
+        </Link>
+      </nav>
 
       <Card className="flex flex-col gap-3">
         <input
