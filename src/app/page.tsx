@@ -28,8 +28,8 @@ export default function Home() {
         <Link href="/admin">
           <Card className="hover:border-brand-gold/60 transition-colors">
             <div className="text-2xl mb-1">⚙️</div>
-            <div className="font-bold text-lg">ניהול תוכן (Admin)</div>
-            <p className="text-brand-muted text-sm mt-1">יצירה ועריכה של ערבים ושאלות</p>
+            <div className="font-bold text-lg">כניסת מנהל</div>
+            <p className="text-brand-muted text-sm mt-1">יצירת אירועים, עריכת שאלות וניהול התוכן</p>
           </Card>
         </Link>
       </div>
