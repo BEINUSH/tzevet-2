@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_SCORING_ENABLED, OPTION_BASED_TYPES, type RoundType } from "@/types/game";
+import { csvToRounds } from "@/lib/eventCsv";
 
 function defaultOptionsFor(type: RoundType): { text: string; isCorrect: boolean }[] {
   if (type === "HEAD_TO_HEAD") {
@@ -98,6 +99,45 @@ export async function reorderRounds(eventId: string, orderedRoundIds: string[]) 
     orderedRoundIds.map((id, index) => prisma.round.update({ where: { id }, data: { order: index } }))
   );
   revalidatePath(`/admin/events/${eventId}`);
+}
+
+export async function importRoundsFromCsv(
+  eventId: string,
+  formData: FormData
+): Promise<{ ok: boolean; errors: string[]; importedCount?: number }> {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, errors: ["לא נבחר קובץ"] };
+  }
+  const text = await file.text();
+  const { rounds, errors } = csvToRounds(text);
+  if (errors.length) {
+    return { ok: false, errors };
+  }
+
+  await prisma.$transaction([
+    prisma.round.deleteMany({ where: { eventId } }),
+    ...rounds.map((r, order) =>
+      prisma.round.create({
+        data: {
+          eventId,
+          type: r.type,
+          order,
+          title: r.title,
+          questionText: r.questionText,
+          timeLimitSec: r.timeLimitSec,
+          allowSelfVote: r.allowSelfVote,
+          scoringEnabled: r.scoringEnabled,
+          options: {
+            create: r.options.map((o, idx) => ({ text: o.text, isCorrect: o.isCorrect, order: idx })),
+          },
+        },
+      })
+    ),
+  ]);
+
+  revalidatePath(`/admin/events/${eventId}`);
+  return { ok: true, errors: [], importedCount: rounds.length };
 }
 
 export async function replaceOptions(

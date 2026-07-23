@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { ROUND_TYPES, ROUND_TYPE_LABELS, type RoundType } from "@/types/game";
 import { createRound, renameEvent, reorderRounds, updateEventDefaults } from "../../actions";
 import { RoundCard } from "./RoundCard";
+import { CsvImportForm } from "./CsvImportForm";
 
 type RoundWithOptions = Round & { options: Option[] };
 type EventWithRounds = Event & { rounds: RoundWithOptions[] };
@@ -107,6 +108,23 @@ export function EventEditor({ event }: { event: EventWithRounds }) {
             אפקטי קול פעילים כברירת מחדל
           </label>
         </div>
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <h2 className="font-bold">עריכה מרוכזת דרך קובץ CSV (נפתח ונערך ב-Excel)</h2>
+        <p className="text-brand-muted text-sm">
+          הורידו את השאלות הנוכחיות, ערכו ב-Excel (למשל להחליף שמות דמו בשמות אמיתיים, לתקן ניסוחים),
+          ואז העלו בחזרה - זה מחליף את כל השאלות באירוע לפי מה שבקובץ.
+        </p>
+        <div>
+          <a
+            href={`/admin/events/${event.id}/export`}
+            className="inline-block text-sm rounded-lg bg-brand-navy-lighter border border-brand-gold/30 px-4 py-2 text-brand-gold hover:border-brand-gold/60"
+          >
+            ⬇ הורדת CSV נוכחי
+          </a>
+        </div>
+        <CsvImportForm eventId={event.id} />
       </Card>
 
       <Card className="flex flex-col gap-3">
