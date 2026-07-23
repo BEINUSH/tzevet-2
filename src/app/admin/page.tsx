@@ -14,8 +14,21 @@ export default async function AdminPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-10 gap-6 max-w-2xl mx-auto w-full">
+      <Link href="/" className="self-start text-brand-muted hover:text-brand-white text-sm">
+        ← חזרה למסך הבית
+      </Link>
+
       <h1 className="text-3xl font-black gold-text">ניהול תוכן</h1>
       <p className="text-brand-muted text-center -mt-4">יצירת אירועים ועריכת סבבים ושאלות</p>
+
+      <Card className="w-full text-sm">
+        <h2 className="font-bold mb-2">איך עובדים כאן?</h2>
+        <ol className="list-decimal list-inside space-y-1 text-brand-muted">
+          <li>יוצרים אירוע חדש או בוחרים אירוע קיים.</li>
+          <li>נכנסים לעריכה ומוסיפים או משנים שאלות וסבבים.</li>
+          <li>חוזרים למסך המנחה ופותחים חדר למשתתפים.</li>
+        </ol>
+      </Card>
 
       <Card className="w-full">
         <NewEventForm />
