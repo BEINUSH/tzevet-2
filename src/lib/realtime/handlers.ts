@@ -553,6 +553,10 @@ export function registerSocketHandlers(io: Server) {
         const session = await getSessionByCode(code);
         const participantId = socket.data.participantId as string | undefined;
         if (!session || !participantId) return cb({ ok: false, error: "אין הרשאה" });
+        const voter = await prisma.participant.findUnique({ where: { id: participantId } });
+        if (!voter || voter.removed || voter.sessionId !== session.id) {
+          return cb({ ok: false, error: "אין הרשאה" });
+        }
         if (session.currentRoundPhase !== "VOTING_OPEN") {
           return cb({ ok: false, error: "ההצבעה סגורה" });
         }
@@ -593,6 +597,10 @@ export function registerSocketHandlers(io: Server) {
         const session = await getSessionByCode(code);
         const participantId = socket.data.participantId as string | undefined;
         if (!session || !participantId) return cb({ ok: false, error: "אין הרשאה" });
+        const voter = await prisma.participant.findUnique({ where: { id: participantId } });
+        if (!voter || voter.removed || voter.sessionId !== session.id) {
+          return cb({ ok: false, error: "אין הרשאה" });
+        }
         if (session.currentRoundPhase !== "VOTING_OPEN") {
           return cb({ ok: false, error: "לא ניתן לענות כרגע" });
         }

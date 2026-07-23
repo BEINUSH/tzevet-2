@@ -106,6 +106,16 @@ export default function PlayPage() {
     );
   }
 
+  if (!state.participants.some((p) => p.id === participantId)) {
+    return (
+      <main className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+        <div className="text-4xl">🚪</div>
+        <p className="text-brand-danger font-semibold">המנחה הסיר אותך מהחדר</p>
+        <p className="text-brand-muted text-sm">אם זו טעות, הצטרפו מחדש עם הקוד</p>
+      </main>
+    );
+  }
+
   async function handleVote(payload: { targetParticipantId?: string; optionId?: string }, label: string) {
     setHasSubmitted(true);
     setVoteFeedback(label);
