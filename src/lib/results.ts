@@ -48,15 +48,16 @@ export function computeChoiceResult(
     tallyMap.set(v.optionId, (tallyMap.get(v.optionId) ?? 0) + 1);
     voteOrder.push({ optionId: v.optionId, participantId: v.participantId, createdAt: v.createdAt });
   }
-  const correctOption = options.find((o) => o.isCorrect) ?? null;
+  const correctOptions = options.filter((o) => o.isCorrect);
+  const correctOptionIds = new Set(correctOptions.map((o) => o.id));
   const tally: TallyEntry[] = options
     .sort((a, b) => a.order - b.order)
     .map((o) => ({ key: o.id, label: o.text, votes: tallyMap.get(o.id) ?? 0, isCorrect: o.isCorrect }));
 
   const scored: Record<string, number> = {};
-  if (round.scoringEnabled && correctOption) {
+  if (round.scoringEnabled && correctOptions.length) {
     const correctVotesInOrder = voteOrder
-      .filter((v) => v.optionId === correctOption.id)
+      .filter((v) => correctOptionIds.has(v.optionId))
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     correctVotesInOrder.forEach((v, idx) => {
       const bonus = SPEED_BONUS[idx] ?? 0;
@@ -67,7 +68,7 @@ export function computeChoiceResult(
   return {
     kind: round.type === "WHO_SAID_IT" ? "WHO_SAID_IT" : "TRIVIA",
     tally,
-    correctOptionId: correctOption?.id ?? null,
+    correctOptionIds: [...correctOptionIds],
     scored,
   };
 }

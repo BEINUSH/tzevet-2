@@ -156,6 +156,14 @@ export default function PlayPage() {
               שאלה {state.roundIndex + 1} מתוך {state.totalRounds}
             </p>
             <h2 className="text-xl font-bold">{round.questionText}</h2>
+            {round.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={round.imageUrl}
+                alt="תמונה לשאלה"
+                className="mt-4 max-h-72 w-full rounded-xl object-contain"
+              />
+            )}
           </Card>
 
           {round.timeLimitSec && state.roundPhase === "VOTING_OPEN" && (
@@ -272,7 +280,7 @@ function RoundResultView({ result }: { result: PublicSessionState["result"] }) {
     const r = result as ChoiceResult;
     return (
       <Card>
-        <TallyList tally={r.tally} correctKey={r.correctOptionId ?? undefined} size="sm" />
+        <TallyList tally={r.tally} correctKeys={r.correctOptionIds} size="sm" />
       </Card>
     );
   }

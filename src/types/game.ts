@@ -56,6 +56,7 @@ export interface PublicRound {
   type: RoundType;
   title: string | null;
   questionText: string;
+  imageUrl: string | null;
   timeLimitSec: number | null;
   allowSelfVote: boolean;
   scoringEnabled: boolean;
@@ -81,7 +82,7 @@ export interface MostLikelyResult {
 export interface ChoiceResult {
   kind: "WHO_SAID_IT" | "TRIVIA";
   tally: TallyEntry[];
-  correctOptionId: string | null;
+  correctOptionIds: string[];
   scored: Record<string, number>; // participantId -> points awarded
 }
 

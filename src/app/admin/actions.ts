@@ -83,9 +83,19 @@ export async function updateRound(
     timeLimitSec: number | null;
     allowSelfVote: boolean;
     scoringEnabled: boolean;
+    imageUrl?: string | null;
   }
 ) {
-  const round = await prisma.round.update({ where: { id: roundId }, data });
+  const { imageUrl, ...roundData } = data;
+  const round = await prisma.round.update({
+    where: { id: roundId },
+    data: {
+      ...roundData,
+      ...(imageUrl !== undefined
+        ? { config: imageUrl ? JSON.stringify({ imageUrl }) : null }
+        : {}),
+    },
+  });
   revalidatePath(`/admin/events/${round.eventId}`);
 }
 
@@ -128,6 +138,7 @@ export async function importRoundsFromCsv(
           timeLimitSec: r.timeLimitSec,
           allowSelfVote: r.allowSelfVote,
           scoringEnabled: r.scoringEnabled,
+          config: r.imageUrl ? JSON.stringify({ imageUrl: r.imageUrl }) : null,
           options: {
             create: r.options.map((o, idx) => ({ text: o.text, isCorrect: o.isCorrect, order: idx })),
           },

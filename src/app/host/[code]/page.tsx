@@ -176,6 +176,14 @@ export default function HostControlPage() {
               {ROUND_TYPE_LABELS[round.type]} · שאלה {state.roundIndex + 1}/{state.totalRounds}
             </p>
             <h2 className="text-xl font-bold">{round.questionText}</h2>
+            {round.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={round.imageUrl}
+                alt="תמונה לשאלה"
+                className="mt-3 max-h-64 w-full rounded-xl object-contain"
+              />
+            )}
           </div>
 
           {(state.roundPhase === "IDLE" || state.roundPhase === "VOTING_CLOSED") && (
@@ -346,7 +354,7 @@ function HostResultPanel({
   }
   if (result.kind === "WHO_SAID_IT" || result.kind === "TRIVIA") {
     const r = result as ChoiceResult;
-    return <TallyList tally={r.tally} correctKey={r.correctOptionId ?? undefined} />;
+    return <TallyList tally={r.tally} correctKeys={r.correctOptionIds} />;
   }
   if (result.kind === "HEAD_TO_HEAD") {
     const r = result as HeadToHeadResult;

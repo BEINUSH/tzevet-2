@@ -16,6 +16,7 @@ export interface CsvRound {
   type: RoundType;
   title: string | null;
   questionText: string;
+  imageUrl: string | null;
   timeLimitSec: number | null;
   allowSelfVote: boolean;
   scoringEnabled: boolean;
@@ -26,6 +27,7 @@ const COLUMNS = [
   "סוג",
   "כותרת",
   "שאלה",
+  "תמונה",
   "זמן_שניות",
   "הצבעה_עצמית",
   "ניקוד",
@@ -51,6 +53,7 @@ export interface RoundsForExport {
   type: string;
   title: string | null;
   questionText: string;
+  config?: string | null;
   timeLimitSec: number | null;
   allowSelfVote: boolean;
   scoringEnabled: boolean;
@@ -64,6 +67,7 @@ export function roundsToCsv(rounds: RoundsForExport[]): string {
       סוג: ROUND_TYPE_LABELS[r.type as RoundType] ?? r.type,
       כותרת: r.title ?? "",
       שאלה: r.questionText,
+      תמונה: getImageUrl(r.config),
       זמן_שניות: r.timeLimitSec != null ? String(r.timeLimitSec) : "",
       הצבעה_עצמית: r.allowSelfVote ? "כן" : "",
       ניקוד: r.scoringEnabled ? "כן" : "",
@@ -81,6 +85,16 @@ export function roundsToCsv(rounds: RoundsForExport[]): string {
 export interface CsvParseResult {
   rounds: CsvRound[];
   errors: string[];
+}
+
+function getImageUrl(config: string | null | undefined): string {
+  if (!config) return "";
+  try {
+    const parsed = JSON.parse(config) as { imageUrl?: unknown };
+    return typeof parsed.imageUrl === "string" ? parsed.imageUrl : "";
+  } catch {
+    return "";
+  }
 }
 
 export function csvToRounds(csvText: string): CsvParseResult {
@@ -142,8 +156,6 @@ export function csvToRounds(csvText: string): CsvParseResult {
           errors.push(`שורה ${rowNum}: צריך לפחות 2 אפשרויות תשובה`);
         } else if (!options.some((o) => o.isCorrect)) {
           errors.push(`שורה ${rowNum}: אף אפשרות לא מסומנת כ"נכונה"`);
-        } else if (options.filter((o) => o.isCorrect).length > 1) {
-          errors.push(`שורה ${rowNum}: יותר מאפשרות אחת מסומנת כ"נכונה" - צריך בדיוק אחת`);
         }
       }
     }
@@ -152,6 +164,7 @@ export function csvToRounds(csvText: string): CsvParseResult {
       type,
       title: (rawRow["כותרת"] ?? "").trim() || null,
       questionText,
+      imageUrl: (rawRow["תמונה"] ?? "").trim() || null,
       timeLimitSec,
       allowSelfVote: isTruthy(rawRow["הצבעה_עצמית"]),
       scoringEnabled: rawRow["ניקוד"] !== undefined && rawRow["ניקוד"].trim() !== ""

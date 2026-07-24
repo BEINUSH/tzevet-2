@@ -16,6 +16,16 @@ import { deleteRound, replaceOptions, updateRound } from "../../actions";
 
 type RoundWithOptions = Round & { options: Option[] };
 
+function getImageUrl(config: string | null): string {
+  if (!config) return "";
+  try {
+    const parsed = JSON.parse(config) as { imageUrl?: unknown };
+    return typeof parsed.imageUrl === "string" ? parsed.imageUrl : "";
+  } catch {
+    return "";
+  }
+}
+
 export function RoundCard({ round, index }: { round: RoundWithOptions; index: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: round.id,
@@ -26,6 +36,7 @@ export function RoundCard({ round, index }: { round: RoundWithOptions; index: nu
 
   const [title, setTitle] = useState(round.title ?? "");
   const [questionText, setQuestionText] = useState(round.questionText);
+  const [imageUrl, setImageUrl] = useState(getImageUrl(round.config));
   const [timeLimitSec, setTimeLimitSec] = useState<string>(round.timeLimitSec?.toString() ?? "");
   const [allowSelfVote, setAllowSelfVote] = useState(round.allowSelfVote);
   const [scoringEnabled, setScoringEnabled] = useState(round.scoringEnabled);
@@ -51,6 +62,7 @@ export function RoundCard({ round, index }: { round: RoundWithOptions; index: nu
         timeLimitSec: timeLimitSec ? Number(timeLimitSec) : null,
         allowSelfVote,
         scoringEnabled,
+        imageUrl: imageUrl.trim() || null,
       });
       if (isOptionBased || isHeadToHead) {
         await replaceOptions(round.id, options);
@@ -130,6 +142,25 @@ export function RoundCard({ round, index }: { round: RoundWithOptions; index: nu
               onChange={(e) => setQuestionText(e.target.value)}
             />
           </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-brand-muted">תמונה לשאלה (כתובת באתר, לא חובה)</span>
+            <input
+              className="rounded-lg bg-brand-navy-lighter px-3 py-2"
+              placeholder="/images/example.jpg"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              dir="ltr"
+            />
+          </label>
+          {imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt="תצוגה מקדימה לשאלה"
+              className="max-h-56 w-auto self-center rounded-xl border border-brand-gold/20 object-contain"
+            />
+          )}
 
           <div className="flex flex-wrap gap-4 items-center">
             <label className="flex items-center gap-2 text-sm">

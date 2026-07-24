@@ -6,6 +6,16 @@ import type {
   RoundType,
 } from "@/types/game";
 
+function roundImageUrl(config: string | null): string | null {
+  if (!config) return null;
+  try {
+    const parsed = JSON.parse(config) as { imageUrl?: unknown };
+    return typeof parsed.imageUrl === "string" ? parsed.imageUrl : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getSessionByCode(code: string) {
   return prisma.session.findUnique({ where: { joinCode: code.toUpperCase() } });
 }
@@ -92,6 +102,7 @@ export async function buildPublicState(sessionId: string): Promise<PublicSession
           type: currentRound.type as RoundType,
           title: currentRound.title,
           questionText: currentRound.questionText,
+          imageUrl: roundImageUrl(currentRound.config),
           timeLimitSec: currentRound.timeLimitSec,
           allowSelfVote: currentRound.allowSelfVote,
           scoringEnabled: currentRound.scoringEnabled,

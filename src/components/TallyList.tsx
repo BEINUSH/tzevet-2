@@ -7,12 +7,12 @@ import type { TallyEntry } from "@/types/game";
 export function TallyList({
   tally,
   winnerKeys = [],
-  correctKey,
+  correctKeys = [],
   size = "md",
 }: {
   tally: TallyEntry[];
   winnerKeys?: string[];
-  correctKey?: string | null;
+  correctKeys?: string[];
   size?: "sm" | "md" | "lg";
 }) {
   const maxVotes = Math.max(1, ...tally.map((t) => t.votes));
@@ -23,7 +23,7 @@ export function TallyList({
     <div className="flex flex-col gap-2 w-full">
       {tally.map((t, i) => {
         const isWinner = winnerKeys.includes(t.key) && t.votes > 0;
-        const isCorrect = correctKey !== undefined && correctKey === t.key;
+        const isCorrect = correctKeys.includes(t.key);
         return (
           <motion.div
             key={t.key}

@@ -124,6 +124,14 @@ export default function PresentPage() {
                 {ROUND_TYPE_LABELS[state.round.type]} · שאלה {state.roundIndex + 1} מתוך {state.totalRounds}
               </p>
               <h1 className="text-4xl md:text-5xl font-black mt-2">{state.round.questionText}</h1>
+              {state.round.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={state.round.imageUrl}
+                  alt="תמונה לשאלה"
+                  className="mx-auto mt-5 max-h-[48vh] max-w-3xl rounded-2xl object-contain shadow-2xl"
+                />
+              )}
             </div>
 
             {state.round.timeLimitSec && state.roundPhase === "VOTING_OPEN" && (
@@ -200,7 +208,7 @@ function PresentResult({ result }: { result: NonNullable<PublicSessionState["res
     const r = result as ChoiceResult;
     return (
       <div className="w-full max-w-2xl">
-        <TallyList tally={r.tally} correctKey={r.correctOptionId ?? undefined} size="lg" />
+        <TallyList tally={r.tally} correctKeys={r.correctOptionIds} size="lg" />
       </div>
     );
   }
