@@ -68,6 +68,9 @@ export function HostLanding({ events }: { events: EventSummary[] }) {
       <Card className="w-full text-sm text-brand-muted">
         <p className="font-bold text-brand-white mb-1">איך מתחילים?</p>
         <p>בחרו אירוע ולחצו על „פתיחת חדר”. במסך הבא יופיעו קוד ו־QR לשליחה למשתתפים.</p>
+        <p className="mt-2">
+          רוצים לבדוק בלי להזמין חברים? פתחו חדר ובחרו שם באפשרות <span className="font-bold text-brand-gold">„ניסיון לבד (דמו)”</span>.
+        </p>
       </Card>
 
       {activeCode && (
