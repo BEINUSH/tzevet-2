@@ -33,6 +33,30 @@ async function getEventRounds(eventId: string) {
 
 type Ack = (response: Record<string, unknown>) => void;
 const noop: Ack = () => {};
+const DEMO_BOT_NAMES = [
+  "🤖 בוט אלפא",
+  "🤖 בוט בראבו",
+  "🤖 בוט צ׳רלי",
+  "🤖 בוט דלתא",
+  "🤖 בוט אקו",
+  "🤖 בוט פוקסטרוט",
+  "🤖 בוט גולף",
+  "🤖 בוט הוטל",
+  "🤖 בוט אינדיה",
+  "🤖 בוט ג׳ולייט",
+];
+const DEMO_ANSWERS = [
+  "ברור שזה קרה בדיוק כשהמפק״צ הסתכל",
+  "אני עדיין טוען שזה היה חלק מהתכנון",
+  "שתי דקות ואני מסדר את זה",
+  "מי הביא את הפק״ל קפה?",
+  "אין לי מושג, אבל אני מצביע בביטחון",
+  "צוות 2 — אין דברים כאלה",
+  "אמרו לי שיש פה ניקוד",
+  "אני מבקש להתייעץ עם חבר טלפוני",
+  "בדקתי פעמיים. בערך.",
+  "זו התשובה הסופית שלי, כנראה",
+];
 
 export function registerSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
@@ -95,6 +119,41 @@ export function registerSocketHandlers(io: Server) {
     );
 
     socket.on(
+      "host:addDemoBots",
+      async ({ code, hostToken }: { code: string; hostToken: string }, cb: Ack = noop) => {
+        const session = await requireHost(code, hostToken);
+        if (!session) return cb({ ok: false, error: "אין הרשאה" });
+        if (session.status !== "LOBBY") return cb({ ok: false, error: "אפשר להוסיף בוטים רק לפני תחילת המשחק" });
+
+        const existingBots = await prisma.participant.findMany({
+          where: { sessionId: session.id, deviceToken: { startsWith: `demo-bot:${session.id}:` } },
+        });
+        const existingIndexes = new Set(
+          existingBots
+            .map((bot) => Number(bot.deviceToken.split(":").at(-1)))
+            .filter((index) => Number.isInteger(index))
+        );
+        const missing = DEMO_BOT_NAMES
+          .map((name, index) => ({ name, index }))
+          .filter(({ index }) => !existingIndexes.has(index));
+
+        if (missing.length) {
+          await prisma.participant.createMany({
+            data: missing.map(({ name, index }) => ({
+              sessionId: session.id,
+              name,
+              deviceToken: `demo-bot:${session.id}:${index}`,
+              connected: true,
+            })),
+          });
+        }
+
+        cb({ ok: true, added: missing.length });
+        await broadcast(io, session.id);
+      }
+    );
+
+    socket.on(
       "host:startGame",
       async ({ code, hostToken }: { code: string; hostToken: string }, cb: Ack = noop) => {
         const session = await requireHost(code, hostToken);
@@ -131,6 +190,68 @@ export function registerSocketHandlers(io: Server) {
           });
           const rounds = await getEventRounds(session.eventId);
           const round = rounds[session.currentRoundIndex];
+          if (round) {
+            const bots = await prisma.participant.findMany({
+              where: {
+                sessionId: session.id,
+                removed: false,
+                deviceToken: { startsWith: `demo-bot:${session.id}:` },
+              },
+              orderBy: { joinedAt: "asc" },
+            });
+            const participants = await prisma.participant.findMany({
+              where: { sessionId: session.id, removed: false },
+              orderBy: { joinedAt: "asc" },
+            });
+
+            bots.forEach((bot, index) => {
+              setTimeout(async () => {
+                const fresh = await prisma.session.findUnique({ where: { id: session.id } });
+                if (fresh?.currentRoundPhase !== "VOTING_OPEN" || fresh.currentRoundIndex !== session.currentRoundIndex) {
+                  return;
+                }
+
+                try {
+                  if (round.type === "ANONYMOUS_PROMPT") {
+                    await prisma.anonymousAnswer.create({
+                      data: {
+                        sessionId: session.id,
+                        roundId: round.id,
+                        participantId: bot.id,
+                        text: DEMO_ANSWERS[index % DEMO_ANSWERS.length],
+                      },
+                    });
+                  } else if (PARTICIPANT_TARGET_TYPES.includes(round.type as never)) {
+                    const candidates = participants.filter((participant) => round.allowSelfVote || participant.id !== bot.id);
+                    const target = candidates[(index * 3 + round.order) % candidates.length];
+                    if (!target) return;
+                    await prisma.vote.create({
+                      data: {
+                        sessionId: session.id,
+                        roundId: round.id,
+                        participantId: bot.id,
+                        targetParticipantId: target.id,
+                      },
+                    });
+                  } else if (OPTION_BASED_TYPES.includes(round.type as never)) {
+                    const option = round.options[(index + round.order) % round.options.length];
+                    if (!option) return;
+                    await prisma.vote.create({
+                      data: {
+                        sessionId: session.id,
+                        roundId: round.id,
+                        participantId: bot.id,
+                        optionId: option.id,
+                      },
+                    });
+                  }
+                } catch {
+                  // Re-opening a vote can encounter an answer the bot already submitted.
+                }
+                await broadcast(io, session.id);
+              }, 500 + index * 180);
+            });
+          }
           if (round?.timeLimitSec) {
             scheduleAutoClose(session.id, round.timeLimitSec * 1000, () => {
               withLock(session.id, async () => {
