@@ -53,7 +53,7 @@ npm run dev
 
 ## מסד הנתונים
 
-SQLite מקומי (`prisma/dev.db`, נוצר אוטומטית). Schema מלא ב-`prisma/schema.prisma`: Event, Round, Option, Session, Participant, Vote, AnonymousAnswer, RoundResult.
+PostgreSQL קבוע דרך `DATABASE_URL`. בפריסה ל-Render יש לחבר מסד PostgreSQL לשירות; כך שאלות ועריכות נשמרות גם לאחר שינה, הפעלה מחדש או פריסה חדשה. Schema מלא ב-`prisma/schema.prisma`: Event, Round, Option, Session, Participant, Vote, AnonymousAnswer, RoundResult.
 
 פקודות שימושיות:
 
@@ -63,13 +63,11 @@ npm run db:seed       # זריעה מחדש של אירוע הדמו (מוחק �
 npx prisma migrate dev --name <שם>   # אחרי שינוי ב-schema.prisma
 ```
 
-לשדרוג ל-Postgres (לדוגמה לפריסה בענן): שנו `provider` ב-`schema.prisma` ל-`postgresql` ואת `DATABASE_URL` בהתאם - שאר הקוד לא משתנה.
-
 ## Environment Variables
 
 | משתנה | ברירת מחדל | הסבר |
 |---|---|---|
-| `DATABASE_URL` | `file:./dev.db` | חיבור למסד הנתונים |
+| `DATABASE_URL` | ללא ברירת מחדל | כתובת החיבור למסד PostgreSQL קבוע |
 | `PORT` | `3000` | פורט השרת |
 
 ## יצירת ערב חדש
@@ -101,7 +99,7 @@ npm start
 ```
 
 הערות לפריסה בענן:
-- החליפו את `DATABASE_URL` ל-Postgres (ראו סעיף מסד הנתונים) - SQLite לא מתאים לאחסון persistent על רוב פלטפורמות ה-containers האפמריות.
+- הגדירו `DATABASE_URL` של PostgreSQL קבוע. פקודת ההפעלה מריצה `prisma db push` לפני עליית השרת כדי להכין את הטבלאות בלי למחוק תוכן קיים.
 - ודאו שהפלטפורמה תומכת ב-WebSocket תמידי (לא HTTP-only serverless).
 - הגדירו `PORT` לפי מה שהפלטפורמה דורשת.
 
