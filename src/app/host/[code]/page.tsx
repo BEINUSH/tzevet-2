@@ -163,7 +163,7 @@ export default function HostControlPage() {
               </span>
             ))}
           </div>
-          <Button size="lg" disabled={state.participants.length < 2 || busy} onClick={() => call("host:startGame")}>
+          <Button size="lg" disabled={state.participants.length < 1 || busy} onClick={() => call("host:startGame")}>
             🚀 התחלת המשחק
           </Button>
         </Card>
