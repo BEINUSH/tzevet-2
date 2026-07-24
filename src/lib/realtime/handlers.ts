@@ -104,7 +104,7 @@ export function registerSocketHandlers(io: Server) {
           const activeCount = await prisma.participant.count({
             where: { sessionId: session.id, removed: false },
           });
-          if (activeCount < 2) throw new Error("צריך לפחות 2 משתתפים כדי להתחיל");
+          if (activeCount < 1) throw new Error("צריך לפחות משתתף אחד כדי להתחיל");
           await prisma.session.update({
             where: { id: session.id },
             data: { status: "IN_ROUND", currentRoundIndex: 0, currentRoundPhase: "IDLE" },
