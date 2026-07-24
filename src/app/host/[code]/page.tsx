@@ -120,6 +120,7 @@ export default function HostControlPage() {
 
   const round = state.round;
   const isLastRound = state.roundIndex + 1 >= state.totalRounds;
+  const demoBotCount = state.participants.filter((participant) => participant.name.startsWith("🤖 ")).length;
 
   return (
     <main className="flex-1 flex flex-col gap-5 px-4 py-6 max-w-2xl mx-auto w-full">
@@ -144,15 +145,20 @@ export default function HostControlPage() {
       {state.status === "LOBBY" && (
         <Card className="flex flex-col items-center gap-4 text-center">
           <div className="w-full rounded-xl border border-brand-gold/30 bg-brand-gold/10 p-4">
-            <p className="font-black text-brand-gold">🧪 ניסיון לבד (דמו)</p>
+            <p className="font-black text-brand-gold">🧪 משחק דמו עם 10 בוטים</p>
             <p className="mt-1 text-sm text-brand-muted">
-              פתחו משתתף בדיקה בלשונית נוספת, הזינו שם כלשהו וחזרו לכאן. אפשר להתחיל את המשחק גם עם משתתף אחד.
+              הבוטים יצטרפו לחדר ויענו אוטומטית בכל שאלה, כדי שתוכלו לראות את המשחק המלא בלי להזמין חברים.
             </p>
-            <a href={joinUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block">
-              <Button size="sm" variant="secondary">
-                פתיחת משתתף דמו
+            <div className="mt-3">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy || demoBotCount >= 10}
+                onClick={() => call("host:addDemoBots")}
+              >
+                {demoBotCount >= 10 ? "✅ 10 הבוטים מוכנים" : "הוספת 10 בוטים לדמו"}
               </Button>
-            </a>
+            </div>
           </div>
           <QRCodeImage value={joinUrl} size={200} />
           <p className="text-brand-muted text-sm break-all">{joinUrl}</p>
