@@ -143,6 +143,17 @@ export default function HostControlPage() {
 
       {state.status === "LOBBY" && (
         <Card className="flex flex-col items-center gap-4 text-center">
+          <div className="w-full rounded-xl border border-brand-gold/30 bg-brand-gold/10 p-4">
+            <p className="font-black text-brand-gold">🧪 ניסיון לבד (דמו)</p>
+            <p className="mt-1 text-sm text-brand-muted">
+              פתחו משתתף בדיקה בלשונית נוספת, הזינו שם כלשהו וחזרו לכאן. אפשר להתחיל את המשחק גם עם משתתף אחד.
+            </p>
+            <a href={joinUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block">
+              <Button size="sm" variant="secondary">
+                פתיחת משתתף דמו
+              </Button>
+            </a>
+          </div>
           <QRCodeImage value={joinUrl} size={200} />
           <p className="text-brand-muted text-sm break-all">{joinUrl}</p>
           <p className="font-bold text-lg">{state.participants.length} משתתפים בפנים</p>
