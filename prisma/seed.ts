@@ -1,4 +1,7 @@
 import { PrismaClient } from "@prisma/client";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { csvToRounds } from "../src/lib/eventCsv";
 
 const prisma = new PrismaClient();
 
@@ -262,6 +265,13 @@ const ALL_ROUNDS: RoundSeed[] = [
   ...AWARDS,
 ];
 
+const defaultCsv = readFileSync(join(process.cwd(), "prisma", "default-event.csv"), "utf8");
+const parsedDefault = csvToRounds(defaultCsv);
+if (parsedDefault.errors.length) {
+  throw new Error(`קובץ שאלות ברירת המחדל אינו תקין:\n${parsedDefault.errors.join("\n")}`);
+}
+const DEFAULT_ROUNDS = parsedDefault.rounds;
+
 async function main() {
   const existing = await prisma.event.findFirst({ where: { name: EVENT_NAME } });
   if (existing) {
@@ -273,8 +283,8 @@ async function main() {
     data: { name: EVENT_NAME, allowSelfVoteDefault: false, soundEnabled: true },
   });
 
-  for (let i = 0; i < ALL_ROUNDS.length; i++) {
-    const r = ALL_ROUNDS[i];
+  for (let i = 0; i < DEFAULT_ROUNDS.length; i++) {
+    const r = DEFAULT_ROUNDS[i];
     await prisma.round.create({
       data: {
         eventId: event.id,
@@ -285,6 +295,7 @@ async function main() {
         timeLimitSec: r.timeLimitSec ?? null,
         allowSelfVote: r.allowSelfVote ?? false,
         scoringEnabled: r.scoringEnabled ?? false,
+        config: r.imageUrl ? JSON.stringify({ imageUrl: r.imageUrl }) : null,
         options: r.options
           ? {
               create: r.options.map((o, idx) => ({
@@ -298,9 +309,7 @@ async function main() {
     });
   }
 
-  console.log(`✅ נזרע האירוע "${EVENT_NAME}" עם ${ALL_ROUNDS.length} סבבים.`);
-  console.log(`   מי הכי: ${MOST_LIKELY.length} | מי אמר: ${WHO_SAID_IT.length} | טריוויה: ${TRIVIA.length}`);
-  console.log(`   הימור: ${HEAD_TO_HEAD.length} | אנונימי: ${ANONYMOUS_PROMPT.length} | פרסים: ${AWARDS.length}`);
+  console.log(`✅ נזרע האירוע "${EVENT_NAME}" עם ${DEFAULT_ROUNDS.length} סבבים.`);
 }
 
 main()
