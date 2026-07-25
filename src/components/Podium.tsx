@@ -29,7 +29,7 @@ export function Podium({ top }: { top: TallyEntry[] }) {
           <div className="text-brand-gold font-bold">{entry.votes} קולות</div>
           <div
             className={clsx(
-              "w-20 md:w-28 rounded-t-xl bg-gradient-to-t from-brand-gold to-brand-gold-light shadow-lg shadow-black/40",
+              "w-20 md:w-28 rounded-t-xl bg-gradient-to-t from-brand-gold to-brand-gold-light shadow-sm",
               HEIGHTS[i]
             )}
           />

@@ -7,16 +7,20 @@
 @theme inline {
   --font-sans: var(--font-rubik);
 
-  --color-brand-navy: #0b1220;
-  --color-brand-navy-light: #141d35;
-  --color-brand-navy-lighter: #1c2745;
-  --color-brand-black: #05070d;
-  --color-brand-white: #f5f7fb;
-  --color-brand-muted: #93a0c2;
-  --color-brand-gold: #d4af6a;
-  --color-brand-gold-light: #f0d9a8;
-  --color-brand-danger: #e5484d;
-  --color-brand-success: #34c78a;
+  /* Token names are historical (kept from an earlier dark theme) but the
+     values below are the current light/minimal palette - e.g. brand-ink
+     is dark text, not "white". */
+  --color-brand-navy: #fafafa; /* page background */
+  --color-brand-navy-light: #ffffff; /* card surface */
+  --color-brand-navy-lighter: #f1f1f3; /* input/track fills */
+  --color-brand-black: #000000; /* strongest contrast (text on accent) */
+  --color-brand-white: #16181d; /* primary text */
+  --color-brand-muted: #6b7280; /* secondary text */
+  --color-brand-border: #e5e7eb;
+  --color-brand-gold: #a9782c;
+  --color-brand-gold-light: #c99a4a;
+  --color-brand-danger: #dc2626;
+  --color-brand-success: #16a34a;
 }
 
 html,
@@ -26,8 +30,7 @@ body {
 
 body {
   font-family: var(--font-sans), Arial, sans-serif;
-  background: radial-gradient(circle at 50% -10%, var(--color-brand-navy-lighter), var(--color-brand-navy) 55%);
-  background-attachment: fixed;
+  background: var(--color-brand-navy);
 }
 
 * {
@@ -35,21 +38,17 @@ body {
 }
 
 ::selection {
-  background: var(--color-brand-gold);
+  background: var(--color-brand-gold-light);
   color: var(--color-brand-black);
 }
 
 .gold-text {
-  background: linear-gradient(90deg, var(--color-brand-gold-light), var(--color-brand-gold));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--color-brand-gold);
 }
 
 .card-glass {
-  background: rgba(20, 29, 53, 0.65);
-  border: 1px solid rgba(212, 175, 106, 0.18);
-  backdrop-filter: blur(10px);
+  background: var(--color-brand-navy-light);
+  border: 1px solid var(--color-brand-border);
 }
 
 @keyframes pop-in {
@@ -85,6 +84,6 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 106, 0.35);
+  background: var(--color-brand-border);
   border-radius: 999px;
 }

@@ -12,12 +12,11 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  primary:
-    "bg-gradient-to-l from-brand-gold to-brand-gold-light text-brand-black font-bold shadow-lg shadow-black/30 hover:brightness-105",
+  primary: "bg-brand-gold text-white font-bold hover:brightness-95",
   secondary:
-    "bg-brand-navy-lighter border border-brand-gold/30 text-brand-white hover:border-brand-gold/60",
+    "bg-brand-navy-lighter border border-brand-border text-brand-white hover:border-brand-gold/50",
   ghost: "bg-transparent text-brand-muted hover:text-brand-white",
-  danger: "bg-brand-danger/90 text-white hover:bg-brand-danger",
+  danger: "bg-brand-danger text-white hover:brightness-95",
 };
 
 const sizeClasses: Record<Size, string> = {

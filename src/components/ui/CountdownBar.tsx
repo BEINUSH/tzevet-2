@@ -50,7 +50,7 @@ export function CountdownBar({
         <div
           className={clsx(
             "h-full rounded-full transition-[width] duration-150 ease-linear",
-            urgent ? "bg-brand-danger" : "bg-gradient-to-l from-brand-gold to-brand-gold-light"
+            urgent ? "bg-brand-danger" : "bg-brand-gold"
           )}
           style={{ width: `${pct}%` }}
         />

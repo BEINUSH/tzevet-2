@@ -11,7 +11,7 @@ export function QRCodeImage({ value, size = 220 }: { value: string; size?: numbe
     QRCode.toDataURL(value, {
       width: size,
       margin: 1,
-      color: { dark: "#0b1220", light: "#f5f7fb" },
+      color: { dark: "#16181d", light: "#ffffff" },
     })
       .then((url) => !cancelled && setDataUrl(url))
       .catch(() => {});
@@ -34,7 +34,7 @@ export function QRCodeImage({ value, size = 220 }: { value: string; size?: numbe
       alt="QR להצטרפות"
       width={size}
       height={size}
-      className="rounded-2xl bg-brand-white p-3 shadow-2xl"
+      className="rounded-2xl bg-white p-3 shadow-sm border border-brand-border"
     />
   );
 }

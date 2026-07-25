@@ -46,9 +46,7 @@ export function TallyList({
               <motion.div
                 className={clsx(
                   "h-full rounded-full",
-                  isWinner || isCorrect
-                    ? "bg-gradient-to-l from-brand-gold to-brand-gold-light"
-                    : "bg-gradient-to-l from-brand-muted/60 to-brand-muted/30"
+                  isWinner || isCorrect ? "bg-brand-gold" : "bg-brand-muted/40"
                 )}
                 initial={{ width: 0 }}
                 animate={{ width: `${(t.votes / maxVotes) * 100}%` }}
