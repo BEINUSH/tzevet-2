@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSocket, emitAsync, emitWithTimeout } from "@/lib/socketClient";
@@ -40,6 +40,7 @@ export default function HostControlPage() {
   const [modAnswers, setModAnswers] = useState<ModAnswer[] | null>(null);
   const [joinUrl, setJoinUrl] = useState("");
   const [confirmingClose, setConfirmingClose] = useState(false);
+  const autoOpenedRoundId = useRef<string | null>(null);
 
   useEffect(() => {
     setJoinUrl(`${window.location.origin}/join?code=${code}`);
@@ -98,6 +99,22 @@ export default function HostControlPage() {
     clearHostSession();
     router.push("/host");
   }
+
+  useEffect(() => {
+    if (
+      state?.status === "IN_ROUND" &&
+      state.round &&
+      state.roundPhase === "IDLE" &&
+      autoOpenedRoundId.current !== state.round.id &&
+      hostToken
+    ) {
+      autoOpenedRoundId.current = state.round.id;
+      void call("host:openVoting");
+    }
+    // `call` intentionally stays outside the dependency list: the round id
+    // guards this effect from opening the same vote more than once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.status, state?.round?.id, state?.roundPhase, hostToken]);
 
   if (error && !state) {
     return (
@@ -205,9 +222,7 @@ export default function HostControlPage() {
 
           {(state.roundPhase === "IDLE" || state.roundPhase === "VOTING_CLOSED") && (
             <div className="flex gap-2 flex-wrap">
-              <Button disabled={busy} onClick={() => call("host:openVoting")}>
-                {state.roundPhase === "IDLE" ? "▶️ פתח הצבעה" : "🔓 פתח הצבעה שוב"}
-              </Button>
+              {state.roundPhase === "IDLE" && <p className="text-brand-gold font-bold animate-pulse">פותחים הצבעה...</p>}
               {state.roundPhase === "VOTING_CLOSED" && (
                 <Button disabled={busy} onClick={() => call("host:reveal")}>
                   🎬 חשוף תוצאות
@@ -231,10 +246,10 @@ export default function HostControlPage() {
                 />
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button disabled={busy} onClick={() => call("host:closeVoting")}>
-                  🔒 סגור הצבעה
+                <Button variant="secondary" size="sm" disabled={busy} onClick={() => call("host:closeVoting")}>
+                  הצג תוצאות עכשיו
                 </Button>
-                <Button variant="secondary" disabled={busy} onClick={() => call("host:skipRound")}>
+                <Button variant="ghost" size="sm" disabled={busy} onClick={() => call("host:skipRound")}>
                   ⏭ דלג
                 </Button>
               </div>
@@ -254,8 +269,8 @@ export default function HostControlPage() {
           )}
 
           {state.roundPhase === "REVEALED" && (
-            <Button disabled={busy} onClick={() => call("host:endRound")}>
-              ✅ סיום סבב
+            <Button size="lg" disabled={busy} onClick={() => call("host:advanceRound")}>
+              {isLastRound ? "🏁 הצגת מסך הסיום" : "השאלה הבאה ←"}
             </Button>
           )}
 
