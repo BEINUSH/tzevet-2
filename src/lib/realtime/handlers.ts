@@ -23,19 +23,29 @@ async function broadcast(io: Server, sessionId: string) {
   if (state) io.to(roomName(sessionId)).emit("state", state);
 }
 
-async function getEventRounds(eventId: string) {
-  return prisma.round.findMany({
+async function getEventRounds(eventId: string, roundOrderJson?: string | null) {
+  const rounds = await prisma.round.findMany({
     where: { eventId },
     orderBy: { order: "asc" },
     include: { options: { orderBy: { order: "asc" } } },
   });
+  if (!roundOrderJson) return rounds;
+  try {
+    const ids = JSON.parse(roundOrderJson) as string[];
+    const positions = new Map(ids.map((id, index) => [id, index]));
+    return [...rounds].sort(
+      (a, b) => (positions.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (positions.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+    );
+  } catch {
+    return rounds;
+  }
 }
 
 async function revealCurrentRoundLocked(sessionId: string) {
   const session = await prisma.session.findUnique({ where: { id: sessionId } });
   if (!session || !["VOTING_OPEN", "VOTING_CLOSED"].includes(session.currentRoundPhase)) return false;
 
-  const rounds = await getEventRounds(session.eventId);
+  const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
   const round = rounds[session.currentRoundIndex];
   if (!round) return false;
 
@@ -101,7 +111,7 @@ async function revealIfEveryoneAnswered(io: Server, sessionId: string, roundId: 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
     if (!session || session.currentRoundPhase !== "VOTING_OPEN") return;
 
-    const rounds = await getEventRounds(session.eventId);
+    const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
     const round = rounds[session.currentRoundIndex];
     if (!round || round.id !== roundId) return;
 
@@ -163,8 +173,15 @@ export function registerSocketHandlers(io: Server) {
         joinCode = generateJoinCode();
       }
       const hostToken = generateHostToken();
+      const roundIds = (
+        await prisma.round.findMany({ where: { eventId }, orderBy: { order: "asc" }, select: { id: true } })
+      ).map((round) => round.id);
+      for (let i = roundIds.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [roundIds[i], roundIds[j]] = [roundIds[j], roundIds[i]];
+      }
       const session = await prisma.session.create({
-        data: { eventId, joinCode, hostToken },
+        data: { eventId, joinCode, hostToken, roundOrderJson: JSON.stringify(roundIds) },
       });
       socket.join(roomName(session.id));
       socket.data.role = "host";
@@ -278,7 +295,7 @@ export function registerSocketHandlers(io: Server) {
             where: { id: session.id },
             data: { currentRoundPhase: "VOTING_OPEN", votingOpenedAt: new Date() },
           });
-          const rounds = await getEventRounds(session.eventId);
+          const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
           const round = rounds[session.currentRoundIndex];
           if (round) {
             const bots = await prisma.participant.findMany({
@@ -396,7 +413,7 @@ export function registerSocketHandlers(io: Server) {
         if (!session) return cb({ ok: false, error: "אין הרשאה" });
         await withLock(session.id, async () => {
           if (session.currentRoundPhase !== "REVEALED") return;
-          const rounds = await getEventRounds(session.eventId);
+          const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
           const round = rounds[session.currentRoundIndex];
           if (!round || round.type !== "HEAD_TO_HEAD") return;
           const stored = await prisma.roundResult.findUnique({
@@ -424,7 +441,7 @@ export function registerSocketHandlers(io: Server) {
         if (!session) return cb({ ok: false, error: "אין הרשאה" });
         await withLock(session.id, async () => {
           if (session.currentRoundPhase !== "REVEALED") return;
-          const rounds = await getEventRounds(session.eventId);
+          const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
           const round = rounds[session.currentRoundIndex];
           if (!round || round.type !== "ANONYMOUS_PROMPT") return;
           const stored = await prisma.roundResult.findUnique({
@@ -458,7 +475,7 @@ export function registerSocketHandlers(io: Server) {
         const session = await requireHost(code, hostToken);
         if (!session) return cb({ ok: false, error: "אין הרשאה" });
         await prisma.anonymousAnswer.update({ where: { id: answerId }, data: { hidden } });
-        const rounds = await getEventRounds(session.eventId);
+        const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
         const round = rounds[session.currentRoundIndex];
         if (round?.type === "ANONYMOUS_PROMPT") {
           const stored = await prisma.roundResult.findUnique({
@@ -484,7 +501,7 @@ export function registerSocketHandlers(io: Server) {
       async ({ code, hostToken }: { code: string; hostToken: string }, cb: Ack = noop) => {
         const session = await requireHost(code, hostToken);
         if (!session) return cb({ ok: false, error: "אין הרשאה" });
-        const rounds = await getEventRounds(session.eventId);
+        const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
         const round = rounds[session.currentRoundIndex];
         if (!round || round.type !== "ANONYMOUS_PROMPT") return cb({ ok: false, error: "לא רלוונטי" });
         const answers = await prisma.anonymousAnswer.findMany({
@@ -541,7 +558,7 @@ export function registerSocketHandlers(io: Server) {
         await withLock(session.id, async () => {
           if (session.status !== "IN_ROUND") return;
           if (session.currentRoundPhase !== "DONE") return;
-          const rounds = await getEventRounds(session.eventId);
+          const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
           const nextIndex = session.currentRoundIndex + 1;
           if (nextIndex >= rounds.length) return; // host must click "show final screen" instead
           await prisma.session.update({
@@ -562,7 +579,7 @@ export function registerSocketHandlers(io: Server) {
         await withLock(session.id, async () => {
           const fresh = await prisma.session.findUnique({ where: { id: session.id } });
           if (!fresh || fresh.status !== "IN_ROUND" || fresh.currentRoundPhase !== "REVEALED") return;
-          const rounds = await getEventRounds(fresh.eventId);
+          const rounds = await getEventRounds(fresh.eventId, fresh.roundOrderJson);
           const nextIndex = fresh.currentRoundIndex + 1;
           if (nextIndex >= rounds.length) {
             await prisma.session.update({
@@ -689,7 +706,7 @@ export function registerSocketHandlers(io: Server) {
         socket.data.participantId = participant.id;
 
         let hasSubmitted = false;
-        const rounds = await getEventRounds(session.eventId);
+        const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
         const round = rounds[session.currentRoundIndex];
         if (round) {
           if (round.type === "ANONYMOUS_PROMPT") {
@@ -731,7 +748,7 @@ export function registerSocketHandlers(io: Server) {
         if (session.currentRoundPhase !== "VOTING_OPEN") {
           return cb({ ok: false, error: "ההצבעה סגורה" });
         }
-        const rounds = await getEventRounds(session.eventId);
+        const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
         const round = rounds[session.currentRoundIndex];
         if (!round) return cb({ ok: false, error: "אין שאלה פעילה" });
 
@@ -778,7 +795,7 @@ export function registerSocketHandlers(io: Server) {
         }
         const trimmed = text.trim().slice(0, 300);
         if (!trimmed) return cb({ ok: false, error: "יש לכתוב תשובה" });
-        const rounds = await getEventRounds(session.eventId);
+        const rounds = await getEventRounds(session.eventId, session.roundOrderJson);
         const round = rounds[session.currentRoundIndex];
         if (!round || round.type !== "ANONYMOUS_PROMPT") return cb({ ok: false, error: "לא רלוונטי" });
 
