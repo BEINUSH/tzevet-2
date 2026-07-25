@@ -30,6 +30,21 @@ export async function buildPublicState(sessionId: string): Promise<PublicSession
   });
   if (!event) return null;
 
+  let orderedRounds = event.rounds;
+  if (session.roundOrderJson) {
+    try {
+      const ids = JSON.parse(session.roundOrderJson) as string[];
+      const positions = new Map(ids.map((id, index) => [id, index]));
+      orderedRounds = [...event.rounds].sort(
+        (a, b) =>
+          (positions.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (positions.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+      );
+    } catch {
+      // Older or malformed sessions keep the event's normal order.
+    }
+  }
+
   const participantsRaw = await prisma.participant.findMany({
     where: { sessionId, removed: false },
     orderBy: { joinedAt: "asc" },
@@ -41,8 +56,8 @@ export async function buildPublicState(sessionId: string): Promise<PublicSession
     score: p.score,
   }));
 
-  const totalRounds = event.rounds.length;
-  const currentRound = event.rounds[session.currentRoundIndex] ?? null;
+  const totalRounds = orderedRounds.length;
+  const currentRound = orderedRounds[session.currentRoundIndex] ?? null;
 
   let votesCast = 0;
   let votesNeeded = participantsRaw.filter((p) => p.connected).length;
@@ -72,7 +87,7 @@ export async function buildPublicState(sessionId: string): Promise<PublicSession
 
   let allAwards: PublicSessionState["allAwards"] = null;
   if (session.status === "FINAL_AWARDS" || session.status === "ENDED") {
-    const awardRounds = event.rounds.filter((r) => r.type === "AWARDS");
+    const awardRounds = orderedRounds.filter((r) => r.type === "AWARDS");
     const results = await prisma.roundResult.findMany({
       where: { sessionId, roundId: { in: awardRounds.map((r) => r.id) } },
     });
