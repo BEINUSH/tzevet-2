@@ -275,8 +275,8 @@ const DEFAULT_ROUNDS = parsedDefault.rounds;
 async function main() {
   const existing = await prisma.event.findFirst({ where: { name: EVENT_NAME } });
   if (existing) {
-    console.log(`מוחק אירוע קודם בשם "${EVENT_NAME}" כדי לזרוע מחדש...`);
-    await prisma.event.delete({ where: { id: existing.id } });
+    console.log(`האירוע "${EVENT_NAME}" כבר קיים — מדלג על זריעה כדי לשמור עריכות ושאלות קיימות.`);
+    return;
   }
 
   const event = await prisma.event.create({
