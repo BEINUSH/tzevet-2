@@ -63,7 +63,7 @@ export function JoinForm() {
 
       <div>
         <div className="text-5xl mb-2">🎖️</div>
-        <h1 className="text-3xl font-black gold-text">ערב גיבוש</h1>
+        <h1 className="text-3xl font-black gold-text">סיירת יואב - צוות בן ססי</h1>
         <p className="text-brand-muted mt-1">הצטרפות למשחק</p>
       </div>
 
