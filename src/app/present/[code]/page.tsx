@@ -95,7 +95,7 @@ export default function PresentPage() {
         ) : state.status === "LOBBY" ? (
           <motion.div key="lobby" {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
             <div>
-              <h1 className="text-5xl md:text-6xl font-black gold-text">{state.eventName}</h1>
+              <h1 className="text-5xl md:text-6xl font-black gold-text">סיירת יואב - צוות בן ססי</h1>
               <p className="text-2xl text-brand-muted mt-3">סרקו והצטרפו</p>
             </div>
             <QRCodeImage value={joinUrl} size={280} />
