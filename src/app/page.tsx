@@ -6,7 +6,7 @@ export default function Home() {
     <main className="flex-1 flex flex-col items-center justify-center gap-10 px-6 py-12 text-center">
       <div>
         <div className="text-6xl mb-3">🎖️</div>
-        <h1 className="text-4xl font-black gold-text">ערב גיבוש</h1>
+        <h1 className="text-4xl font-black gold-text">סיירת יואב - צוות בן ססי</h1>
         <p className="text-brand-muted mt-2">אפליקציית המשחקים לערב שלכם</p>
       </div>
 
