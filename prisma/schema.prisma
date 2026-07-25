@@ -64,6 +64,7 @@ model Session {
   event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   joinCode          String   @unique
   hostToken         String
+  roundOrderJson    String?
   status               String    @default("LOBBY")
   currentRoundIndex    Int       @default(-1)
   currentRoundPhase    String    @default("IDLE")
