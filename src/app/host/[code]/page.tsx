@@ -241,7 +241,7 @@ export default function HostControlPage() {
               </p>
               <div className="h-3 w-full rounded-full bg-brand-navy-lighter overflow-hidden">
                 <div
-                  className="h-full bg-brand-gold transition-all"
+                  className="h-full bg-gradient-to-l from-brand-gold to-brand-gold-light transition-all"
                   style={{ width: `${state.votesNeeded ? (state.votesCast / state.votesNeeded) * 100 : 0}%` }}
                 />
               </div>
@@ -303,14 +303,7 @@ export default function HostControlPage() {
         <Card className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="font-bold">טבלת ניקוד</span>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={state.showLeaderboard}
-                onChange={(e) => call("host:toggleLeaderboard", { show: e.target.checked })}
-              />
-              הצג במסך ההקרנה
-            </label>
+            <span className="text-sm text-brand-muted">הניקוד חסוי במסך ההקרנה עד לסיום</span>
           </div>
           <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
             {state.participants.map((p) => (
