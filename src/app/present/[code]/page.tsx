@@ -8,7 +8,6 @@ import { useSound } from "@/lib/useSound";
 import { QRCodeImage } from "@/components/QRCodeImage";
 import { TallyList } from "@/components/TallyList";
 import { Podium } from "@/components/Podium";
-import { Leaderboard } from "@/components/Leaderboard";
 import { CountdownBar } from "@/components/ui/CountdownBar";
 import { MAX_PARTICIPANTS, ROUND_TYPE_LABELS } from "@/types/game";
 import type {
@@ -46,7 +45,6 @@ export default function PresentPage() {
     const onState = (s: PublicSessionState) => {
       setState((prev) => {
         if (prev && prev.roundPhase !== "REVEALED" && s.roundPhase === "REVEALED") sound.play("reveal");
-        if (prev && !prev.showLeaderboard && s.showLeaderboard) sound.play("leaderboard");
         if (prev && prev.round?.id !== s.round?.id) sound.play("next");
         return s;
       });
@@ -74,6 +72,15 @@ export default function PresentPage() {
     );
   }
 
+  const checkpointRound =
+    state.status === "IN_ROUND" &&
+    state.roundPhase === "REVEALED" &&
+    (state.roundIndex + 1) % 7 === 0 &&
+    state.roundIndex + 1 < state.totalRounds;
+  const leaders = [...state.participants]
+    .sort((a, b) => b.score - a.score)
+    .filter((participant, _, all) => participant.score === all[0]?.score);
+
   return (
     <main className="flex-1 flex flex-col relative overflow-hidden px-10 py-8">
       <button
@@ -85,12 +92,21 @@ export default function PresentPage() {
       </button>
 
       <AnimatePresence mode="wait">
-        {state.showLeaderboard ? (
-          <motion.div key="leaderboard" {...fade} className="flex-1 flex flex-col items-center justify-center gap-8">
-            <h1 className="text-5xl font-black gold-text">טבלת המובילים</h1>
-            <div className="w-full max-w-2xl">
-              <Leaderboard participants={state.participants} />
-            </div>
+        {checkpointRound ? (
+          <motion.div key={`checkpoint-${state.roundIndex}`} {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
+            <p className="text-3xl text-brand-muted">סיכום ביניים · אחרי {state.roundIndex + 1} שאלות</p>
+            <h1 className="text-6xl font-black gold-text">🏅 מי מוביל כרגע?</h1>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5, type: "spring" }}
+              className="card-glass rounded-3xl px-16 py-10"
+            >
+              <p className="text-6xl md:text-7xl font-black">
+                {leaders.map((participant) => participant.name).join(" · ")}
+              </p>
+              <p className="mt-4 text-2xl text-brand-muted">הכול עדיין פתוח — ממשיכים!</p>
+            </motion.div>
           </motion.div>
         ) : state.status === "LOBBY" ? (
           <motion.div key="lobby" {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
@@ -164,9 +180,7 @@ export default function PresentPage() {
           <motion.div key="final" {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
             <h1 className="text-6xl font-black gold-text">🏆 סיכום הערב 🏆</h1>
             {state.finalLeaderboard && (
-              <div className="w-full max-w-2xl">
-                <Leaderboard participants={state.finalLeaderboard} limit={5} />
-              </div>
+              <FinalPodium participants={state.finalLeaderboard} />
             )}
             {state.allAwards && state.allAwards.length > 0 && (
               <div className="grid grid-cols-2 gap-4 max-w-4xl w-full">
@@ -182,6 +196,34 @@ export default function PresentPage() {
         ) : null}
       </AnimatePresence>
     </main>
+  );
+}
+
+function FinalPodium({ participants }: { participants: PublicSessionState["participants"] }) {
+  const topThree = [...participants].sort((a, b) => b.score - a.score).slice(0, 3).reverse();
+  const places = ["מקום שלישי", "מקום שני", "מקום ראשון"];
+  const medals = ["🥉", "🥈", "🥇"];
+
+  return (
+    <div className="flex flex-col gap-5 w-full max-w-3xl">
+      {topThree.map((participant, index) => (
+        <motion.div
+          key={participant.id}
+          initial={{ opacity: 0, scale: 0.7, y: 35 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ delay: index * 1.5 + 0.5, type: "spring", stiffness: 110 }}
+          className={`rounded-3xl border px-8 py-5 ${
+            index === 2
+              ? "border-brand-gold bg-brand-gold/20 text-5xl"
+              : "border-brand-gold/30 bg-brand-navy-lighter text-4xl"
+          }`}
+        >
+          <p className="text-xl text-brand-muted">{medals[index]} {places[index]}</p>
+          <p className="mt-2 font-black">{participant.name}</p>
+          <p className="mt-2 text-xl font-bold text-brand-gold">{participant.score} נקודות</p>
+        </motion.div>
+      ))}
+    </div>
   );
 }
 
