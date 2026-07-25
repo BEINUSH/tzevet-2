@@ -9,7 +9,7 @@ const rubik = Rubik({
 });
 
 export const metadata: Metadata = {
-  title: "ערב גיבוש",
+  title: "סיירת יואב - צוות בן ססי",
   description: "אפליקציית משחקים לערב גיבוש",
 };
 
