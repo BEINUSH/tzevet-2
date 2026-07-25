@@ -31,6 +31,96 @@ async function getEventRounds(eventId: string) {
   });
 }
 
+async function revealCurrentRoundLocked(sessionId: string) {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session || !["VOTING_OPEN", "VOTING_CLOSED"].includes(session.currentRoundPhase)) return false;
+
+  const rounds = await getEventRounds(session.eventId);
+  const round = rounds[session.currentRoundIndex];
+  if (!round) return false;
+
+  const existingResult = await prisma.roundResult.findUnique({
+    where: { sessionId_roundId: { sessionId, roundId: round.id } },
+  });
+  if (existingResult) {
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: { currentRoundPhase: "REVEALED" },
+    });
+    return true;
+  }
+
+  const participants = await prisma.participant.findMany({
+    where: { sessionId, removed: false },
+  });
+
+  if (PARTICIPANT_TARGET_TYPES.includes(round.type as never)) {
+    const votes = await prisma.vote.findMany({ where: { sessionId, roundId: round.id } });
+    const resultPayload = computeMostLikelyResult(round, participants, votes);
+    await prisma.roundResult.create({
+      data: { sessionId, roundId: round.id, resultJson: JSON.stringify(resultPayload) },
+    });
+  } else if (round.type === "HEAD_TO_HEAD") {
+    const votes = await prisma.vote.findMany({ where: { sessionId, roundId: round.id } });
+    const resultPayload = computeHeadToHeadBetting(round.options, votes);
+    await prisma.roundResult.create({
+      data: { sessionId, roundId: round.id, resultJson: JSON.stringify(resultPayload) },
+    });
+  } else if (OPTION_BASED_TYPES.includes(round.type as never)) {
+    const votes = await prisma.vote.findMany({ where: { sessionId, roundId: round.id } });
+    const resultPayload = computeChoiceResult(round, round.options, votes);
+    await prisma.roundResult.create({
+      data: { sessionId, roundId: round.id, resultJson: JSON.stringify(resultPayload) },
+    });
+    await applyScoring(sessionId, resultPayload.scored);
+  } else if (round.type === "ANONYMOUS_PROMPT") {
+    const answers = await prisma.anonymousAnswer.findMany({
+      where: { sessionId, roundId: round.id },
+      orderBy: { createdAt: "asc" },
+    });
+    const resultPayload: AnonymousPromptResult = {
+      kind: "ANONYMOUS_PROMPT",
+      answers: answers.map((a) => ({ id: a.id, text: a.text, hidden: a.hidden })),
+      shownIndex: 0,
+    };
+    await prisma.roundResult.create({
+      data: { sessionId, roundId: round.id, resultJson: JSON.stringify(resultPayload) },
+    });
+  }
+
+  await prisma.session.update({
+    where: { id: sessionId },
+    data: { currentRoundPhase: "REVEALED" },
+  });
+  return true;
+}
+
+async function revealIfEveryoneAnswered(io: Server, sessionId: string, roundId: string) {
+  let revealed = false;
+  await withLock(sessionId, async () => {
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session || session.currentRoundPhase !== "VOTING_OPEN") return;
+
+    const rounds = await getEventRounds(session.eventId);
+    const round = rounds[session.currentRoundIndex];
+    if (!round || round.id !== roundId) return;
+
+    const votesNeeded = await prisma.participant.count({
+      where: { sessionId, removed: false, connected: true },
+    });
+    if (votesNeeded < 1) return;
+    const votesCast =
+      round.type === "ANONYMOUS_PROMPT"
+        ? await prisma.anonymousAnswer.count({ where: { sessionId, roundId } })
+        : await prisma.vote.count({ where: { sessionId, roundId } });
+    if (votesCast < votesNeeded) return;
+
+    clearAutoClose(sessionId);
+    revealed = await revealCurrentRoundLocked(sessionId);
+  });
+  if (revealed) await broadcast(io, sessionId);
+}
+
 type Ack = (response: Record<string, unknown>) => void;
 const noop: Ack = () => {};
 const DEMO_BOT_NAMES = [
@@ -249,6 +339,7 @@ export function registerSocketHandlers(io: Server) {
                   // Re-opening a vote can encounter an answer the bot already submitted.
                 }
                 await broadcast(io, session.id);
+                await revealIfEveryoneAnswered(io, session.id, round.id);
               }, 500 + index * 180);
             });
           }
@@ -257,10 +348,7 @@ export function registerSocketHandlers(io: Server) {
               withLock(session.id, async () => {
                 const fresh = await prisma.session.findUnique({ where: { id: session.id } });
                 if (fresh?.currentRoundPhase !== "VOTING_OPEN") return;
-                await prisma.session.update({
-                  where: { id: session.id },
-                  data: { currentRoundPhase: "VOTING_CLOSED" },
-                });
+                await revealCurrentRoundLocked(session.id);
               }).then(() => broadcast(io, session.id));
             });
           }
@@ -278,10 +366,7 @@ export function registerSocketHandlers(io: Server) {
         clearAutoClose(session.id);
         await withLock(session.id, async () => {
           if (session.currentRoundPhase !== "VOTING_OPEN") return;
-          await prisma.session.update({
-            where: { id: session.id },
-            data: { currentRoundPhase: "VOTING_CLOSED" },
-          });
+          await revealCurrentRoundLocked(session.id);
         });
         cb({ ok: true });
         await broadcast(io, session.id);
@@ -294,69 +379,7 @@ export function registerSocketHandlers(io: Server) {
         const session = await requireHost(code, hostToken);
         if (!session) return cb({ ok: false, error: "אין הרשאה" });
         await withLock(session.id, async () => {
-          if (session.currentRoundPhase !== "VOTING_CLOSED") return;
-          const rounds = await getEventRounds(session.eventId);
-          const round = rounds[session.currentRoundIndex];
-          if (!round) return;
-
-          const participants = await prisma.participant.findMany({
-            where: { sessionId: session.id, removed: false },
-          });
-
-          if (PARTICIPANT_TARGET_TYPES.includes(round.type as never)) {
-            const votes = await prisma.vote.findMany({ where: { sessionId: session.id, roundId: round.id } });
-            const resultPayload = computeMostLikelyResult(round, participants, votes);
-            await prisma.roundResult.create({
-              data: {
-                sessionId: session.id,
-                roundId: round.id,
-                resultJson: JSON.stringify(resultPayload),
-              },
-            });
-          } else if (round.type === "HEAD_TO_HEAD") {
-            const votes = await prisma.vote.findMany({ where: { sessionId: session.id, roundId: round.id } });
-            const resultPayload = computeHeadToHeadBetting(round.options, votes);
-            await prisma.roundResult.create({
-              data: {
-                sessionId: session.id,
-                roundId: round.id,
-                resultJson: JSON.stringify(resultPayload),
-              },
-            });
-          } else if (OPTION_BASED_TYPES.includes(round.type as never)) {
-            const votes = await prisma.vote.findMany({ where: { sessionId: session.id, roundId: round.id } });
-            const resultPayload = computeChoiceResult(round, round.options, votes);
-            await prisma.roundResult.create({
-              data: {
-                sessionId: session.id,
-                roundId: round.id,
-                resultJson: JSON.stringify(resultPayload),
-              },
-            });
-            await applyScoring(session.id, resultPayload.scored);
-          } else if (round.type === "ANONYMOUS_PROMPT") {
-            const answers = await prisma.anonymousAnswer.findMany({
-              where: { sessionId: session.id, roundId: round.id },
-              orderBy: { createdAt: "asc" },
-            });
-            const resultPayload: AnonymousPromptResult = {
-              kind: "ANONYMOUS_PROMPT",
-              answers: answers.map((a) => ({ id: a.id, text: a.text, hidden: a.hidden })),
-              shownIndex: 0,
-            };
-            await prisma.roundResult.create({
-              data: {
-                sessionId: session.id,
-                roundId: round.id,
-                resultJson: JSON.stringify(resultPayload),
-              },
-            });
-          }
-
-          await prisma.session.update({
-            where: { id: session.id },
-            data: { currentRoundPhase: "REVEALED" },
-          });
+          await revealCurrentRoundLocked(session.id);
         });
         cb({ ok: true });
         await broadcast(io, session.id);
@@ -525,6 +548,33 @@ export function registerSocketHandlers(io: Server) {
             where: { id: session.id },
             data: { currentRoundIndex: nextIndex, currentRoundPhase: "IDLE" },
           });
+        });
+        cb({ ok: true });
+        await broadcast(io, session.id);
+      }
+    );
+
+    socket.on(
+      "host:advanceRound",
+      async ({ code, hostToken }: { code: string; hostToken: string }, cb: Ack = noop) => {
+        const session = await requireHost(code, hostToken);
+        if (!session) return cb({ ok: false, error: "אין הרשאה" });
+        await withLock(session.id, async () => {
+          const fresh = await prisma.session.findUnique({ where: { id: session.id } });
+          if (!fresh || fresh.status !== "IN_ROUND" || fresh.currentRoundPhase !== "REVEALED") return;
+          const rounds = await getEventRounds(fresh.eventId);
+          const nextIndex = fresh.currentRoundIndex + 1;
+          if (nextIndex >= rounds.length) {
+            await prisma.session.update({
+              where: { id: fresh.id },
+              data: { status: "FINAL_AWARDS", currentRoundPhase: "DONE" },
+            });
+          } else {
+            await prisma.session.update({
+              where: { id: fresh.id },
+              data: { currentRoundIndex: nextIndex, currentRoundPhase: "IDLE", votingOpenedAt: null },
+            });
+          }
         });
         cb({ ok: true });
         await broadcast(io, session.id);
@@ -709,6 +759,7 @@ export function registerSocketHandlers(io: Server) {
         }
         cb({ ok: true });
         await broadcast(io, session.id);
+        await revealIfEveryoneAnswered(io, session.id, round.id);
       }
     );
 
@@ -740,6 +791,7 @@ export function registerSocketHandlers(io: Server) {
         }
         cb({ ok: true });
         await broadcast(io, session.id);
+        await revealIfEveryoneAnswered(io, session.id, round.id);
       }
     );
 
