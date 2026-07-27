@@ -77,9 +77,7 @@ export default function PresentPage() {
     state.roundPhase === "REVEALED" &&
     (state.roundIndex + 1) % 7 === 0 &&
     state.roundIndex + 1 < state.totalRounds;
-  const leaders = [...state.participants]
-    .sort((a, b) => b.score - a.score)
-    .filter((participant, _, all) => participant.score === all[0]?.score);
+  const checkpointLeaders = [...state.participants].sort((a, b) => b.score - a.score).slice(0, 2);
 
   return (
     <main className="flex-1 flex flex-col relative overflow-hidden px-10 py-8">
@@ -96,17 +94,23 @@ export default function PresentPage() {
           <motion.div key={`checkpoint-${state.roundIndex}`} {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
             <p className="text-3xl text-brand-muted">סיכום ביניים · אחרי {state.roundIndex + 1} שאלות</p>
             <h1 className="text-6xl font-black gold-text">🏅 מי מוביל כרגע?</h1>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, type: "spring" }}
-              className="card-glass rounded-3xl px-16 py-10"
-            >
-              <p className="text-6xl md:text-7xl font-black">
-                {leaders.map((participant) => participant.name).join(" · ")}
-              </p>
-              <p className="mt-4 text-2xl text-brand-muted">הכול עדיין פתוח — ממשיכים!</p>
-            </motion.div>
+            <div className="flex flex-col md:flex-row gap-6 w-full max-w-4xl justify-center">
+              {checkpointLeaders.map((participant, index) => (
+                <motion.div
+                  key={participant.id}
+                  initial={{ opacity: 0, scale: 0.6, y: 30 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.5 + index * 0.7, type: "spring" }}
+                  className={`card-glass rounded-3xl px-12 py-9 flex-1 ${
+                    index === 0 ? "border-brand-gold bg-brand-gold/15" : ""
+                  }`}
+                >
+                  <p className="text-3xl text-brand-muted">{index === 0 ? "🥇 מקום ראשון" : "🥈 מקום שני"}</p>
+                  <p className="mt-3 text-5xl md:text-6xl font-black">{participant.name}</p>
+                </motion.div>
+              ))}
+            </div>
+            <p className="text-2xl text-brand-muted">הכול עדיין פתוח — ממשיכים!</p>
           </motion.div>
         ) : state.status === "LOBBY" ? (
           <motion.div key="lobby" {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
