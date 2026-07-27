@@ -35,11 +35,9 @@ export async function buildPublicState(sessionId: string): Promise<PublicSession
     try {
       const ids = JSON.parse(session.roundOrderJson) as string[];
       const positions = new Map(ids.map((id, index) => [id, index]));
-      orderedRounds = [...event.rounds].sort(
-        (a, b) =>
-          (positions.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
-          (positions.get(b.id) ?? Number.MAX_SAFE_INTEGER)
-      );
+      orderedRounds = event.rounds
+        .filter((round) => positions.has(round.id))
+        .sort((a, b) => positions.get(a.id)! - positions.get(b.id)!);
     } catch {
       // Older or malformed sessions keep the event's normal order.
     }
