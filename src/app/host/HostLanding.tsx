@@ -15,6 +15,8 @@ interface EventSummary {
   roundCount: number;
 }
 
+type GameLength = 25 | 35 | "all";
+
 export function HostLanding({ events }: { events: EventSummary[] }) {
   const router = useRouter();
   const [activeCode, setActiveCode] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function HostLanding({ events }: { events: EventSummary[] }) {
     if (session) setActiveCode(session.code);
   }, []);
 
-  async function handleOpen(eventId: string) {
+  async function handleOpen(eventId: string, gameLength: GameLength) {
     if (loadingId) return;
 
     setLoadingId(eventId);
@@ -41,7 +43,7 @@ export function HostLanding({ events }: { events: EventSummary[] }) {
         code?: string;
         hostToken?: string;
         error?: string;
-      }>("host:createSession", { eventId });
+      }>("host:createSession", { eventId, roundLimit: gameLength === "all" ? null : gameLength });
 
       if (res.ok && res.code && res.hostToken) {
         saveHostSession({ code: res.code, hostToken: res.hostToken });
@@ -67,7 +69,10 @@ export function HostLanding({ events }: { events: EventSummary[] }) {
       <h1 className="text-3xl font-black gold-text">מסך מנחה</h1>
       <Card className="w-full text-sm text-brand-muted">
         <p className="font-bold text-brand-white mb-1">איך מתחילים?</p>
-        <p>בחרו אירוע ולחצו על „פתיחת חדר”. במסך הבא יופיעו קוד ו־QR לשליחה למשתתפים.</p>
+        <p>בחרו אורך משחק. במסך הבא יופיעו קוד ו־QR לשליחה למשתתפים.</p>
+        <p className="mt-2">
+          גם במשחק קצר המערכת דואגת שתופיע לפחות שאלה אחת על כל חבר צוות.
+        </p>
         <p className="mt-2">
           רוצים לבדוק בלי להזמין חברים? פתחו חדר ובחרו שם <span className="font-bold text-brand-gold">„הוספת 10 בוטים לדמו”</span>.
         </p>
@@ -89,26 +94,31 @@ export function HostLanding({ events }: { events: EventSummary[] }) {
           </Card>
         )}
         {events.map((e) => (
-          <Card key={e.id} className="flex items-center justify-between gap-4">
+          <Card key={e.id} className="flex flex-col gap-4">
             <div>
               <div className="font-bold text-lg">{e.name}</div>
               <div className="text-brand-muted text-sm">{e.roundCount} סבבים</div>
             </div>
-            <Button
-              onClick={() => handleOpen(e.id)}
-              disabled={loadingId !== null}
-              aria-busy={loadingId === e.id}
-              className="min-w-32"
-            >
-              {loadingId === e.id ? (
+            {loadingId === e.id ? (
+              <Button disabled aria-busy className="w-full">
                 <span className="flex items-center justify-center gap-2">
                   <LoadingSpinner />
                   פותח חדר...
                 </span>
-              ) : (
-                "פתיחת חדר"
-              )}
-            </Button>
+              </Button>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button onClick={() => handleOpen(e.id, 25)} disabled={loadingId !== null}>
+                  קצר · 25
+                </Button>
+                <Button onClick={() => handleOpen(e.id, 35)} disabled={loadingId !== null} variant="secondary">
+                  רגיל · 35
+                </Button>
+                <Button onClick={() => handleOpen(e.id, "all")} disabled={loadingId !== null} variant="ghost">
+                  מלא · {e.roundCount}
+                </Button>
+              </div>
+            )}
           </Card>
         ))}
       </div>
