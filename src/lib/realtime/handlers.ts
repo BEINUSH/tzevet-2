@@ -33,9 +33,9 @@ async function getEventRounds(eventId: string, roundOrderJson?: string | null) {
   try {
     const ids = JSON.parse(roundOrderJson) as string[];
     const positions = new Map(ids.map((id, index) => [id, index]));
-    return [...rounds].sort(
-      (a, b) => (positions.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (positions.get(b.id) ?? Number.MAX_SAFE_INTEGER)
-    );
+    return rounds
+      .filter((round) => positions.has(round.id))
+      .sort((a, b) => positions.get(a.id)! - positions.get(b.id)!);
   } catch {
     return rounds;
   }
@@ -158,12 +158,75 @@ const DEMO_ANSWERS = [
   "זו התשובה הסופית שלי, כנראה",
 ];
 
+const TEAM_MEMBERS = [
+  "המפק״צ ישראל בן-ססי",
+  "ליאור חי גוטליב",
+  "אריאל בן עמי",
+  "שלמה אילן קינן",
+  "ביינוש קרליבך",
+  "יחיאל זוהר",
+  "אבי אלמוג",
+  "אבי עמר",
+  "יוסף הראל",
+  "אליעזר בורובסקי",
+  "אורן מועלם",
+  "נחום הורביץ",
+  "נתנאל שלזינגר",
+  "משה טוביאנה",
+] as const;
+
+function shuffle<T>(items: T[]): T[] {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+async function selectSessionRoundIds(eventId: string, roundLimit?: number | null): Promise<string[]> {
+  const rounds = await prisma.round.findMany({
+    where: { eventId },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      options: { select: { text: true, isCorrect: true } },
+    },
+  });
+  if (!roundLimit || roundLimit >= rounds.length) return shuffle(rounds.map((round) => round.id));
+
+  const selectedIds = new Set<string>();
+  for (const member of shuffle([...TEAM_MEMBERS])) {
+    const candidates = rounds.filter(
+      (round) =>
+        !selectedIds.has(round.id) &&
+        round.options.some((option) => option.isCorrect && option.text === member),
+    );
+    const selected = shuffle(candidates)[0];
+    if (selected) selectedIds.add(selected.id);
+  }
+
+  for (const round of shuffle(rounds)) {
+    if (selectedIds.size >= roundLimit) break;
+    selectedIds.add(round.id);
+  }
+  return shuffle([...selectedIds]);
+}
+
 export function registerSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
     // ---------- Host ----------
-    socket.on("host:createSession", async ({ eventId }: { eventId: string }, cb: Ack = noop) => {
+    socket.on(
+      "host:createSession",
+      async (
+        { eventId, roundLimit }: { eventId: string; roundLimit?: number | null },
+        cb: Ack = noop,
+      ) => {
       const event = await prisma.event.findUnique({ where: { id: eventId } });
       if (!event) return cb({ ok: false, error: "האירוע לא נמצא" });
+      if (roundLimit != null && ![25, 35].includes(roundLimit)) {
+        return cb({ ok: false, error: "אורך המשחק אינו תקין" });
+      }
 
       let joinCode = generateJoinCode();
       // Extremely unlikely collision loop, bounded for safety.
@@ -173,13 +236,7 @@ export function registerSocketHandlers(io: Server) {
         joinCode = generateJoinCode();
       }
       const hostToken = generateHostToken();
-      const roundIds = (
-        await prisma.round.findMany({ where: { eventId }, orderBy: { order: "asc" }, select: { id: true } })
-      ).map((round) => round.id);
-      for (let i = roundIds.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [roundIds[i], roundIds[j]] = [roundIds[j], roundIds[i]];
-      }
+      const roundIds = await selectSessionRoundIds(eventId, roundLimit);
       const session = await prisma.session.create({
         data: { eventId, joinCode, hostToken, roundOrderJson: JSON.stringify(roundIds) },
       });
@@ -188,7 +245,8 @@ export function registerSocketHandlers(io: Server) {
       socket.data.sessionId = session.id;
       const state = await buildPublicState(session.id);
       cb({ ok: true, code: session.joinCode, hostToken, state });
-    });
+      },
+    );
 
     socket.on(
       "host:reclaimSession",
