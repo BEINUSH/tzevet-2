@@ -273,23 +273,27 @@ if (parsedDefault.errors.length) {
 const DEFAULT_ROUNDS = parsedDefault.rounds;
 
 async function main() {
-  const existing = await prisma.event.findFirst({ where: { name: EVENT_NAME } });
-  if (existing) {
-    console.log(`האירוע "${EVENT_NAME}" כבר קיים — מדלג על זריעה כדי לשמור עריכות ושאלות קיימות.`);
-    return;
-  }
+  const event =
+    (await prisma.event.findFirst({ where: { name: EVENT_NAME } })) ??
+    (await prisma.event.create({
+      data: { name: EVENT_NAME, allowSelfVoteDefault: false, soundEnabled: true },
+    }));
 
-  const event = await prisma.event.create({
-    data: { name: EVENT_NAME, allowSelfVoteDefault: false, soundEnabled: true },
+  const existingRounds = await prisma.round.findMany({
+    where: { eventId: event.id },
+    select: { questionText: true, order: true },
   });
+  const existingQuestions = new Set(existingRounds.map((round) => round.questionText));
+  let nextOrder = existingRounds.reduce((max, round) => Math.max(max, round.order), -1) + 1;
+  let added = 0;
 
-  for (let i = 0; i < DEFAULT_ROUNDS.length; i++) {
-    const r = DEFAULT_ROUNDS[i];
+  for (const r of DEFAULT_ROUNDS) {
+    if (existingQuestions.has(r.questionText)) continue;
     await prisma.round.create({
       data: {
         eventId: event.id,
         type: r.type,
-        order: i,
+        order: nextOrder++,
         title: r.title ?? null,
         questionText: r.questionText,
         timeLimitSec: r.timeLimitSec ?? null,
@@ -307,9 +311,15 @@ async function main() {
           : undefined,
       },
     });
+    existingQuestions.add(r.questionText);
+    added++;
   }
 
-  console.log(`✅ נזרע האירוע "${EVENT_NAME}" עם ${DEFAULT_ROUNDS.length} סבבים.`);
+  console.log(
+    added
+      ? `✅ נוספו ${added} סבבים חדשים לאירוע "${EVENT_NAME}" בלי לשנות או למחוק את התוכן הקיים.`
+      : `האירוע "${EVENT_NAME}" כבר מעודכן — לא בוצעו שינויים בתוכן.`,
+  );
 }
 
 main()
