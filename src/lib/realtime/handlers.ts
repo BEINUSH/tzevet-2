@@ -18,9 +18,10 @@ function roomName(sessionId: string) {
   return `session:${sessionId}`;
 }
 
-const broadcastTimers = new Map<string, { timer: ReturnType<typeof setTimeout> | null; again: boolean }>(); const BROADCAST_DEBOUNCE_MS = 200; async function doBroadcast(io: Server, sessionId: string) {
+async function broadcast(io: Server, sessionId: string) {
   const state = await buildPublicState(sessionId);
-  if (state) io.to(roomName(sessionId)).emit("state", state); } async function broadcast(io: Server, sessionId: string) { const entry = broadcastTimers.get(sessionId); if (entry && entry.timer) { entry.again = true; return; } await doBroadcast(io, sessionId); const timer = setTimeout(() => { const current = broadcastTimers.get(sessionId); broadcastTimers.set(sessionId, { timer: null, again: false }); if (current && current.again) void broadcast(io, sessionId); }, BROADCAST_DEBOUNCE_MS); broadcastTimers.set(sessionId, if (state) io.to{ timer, again: false }); }(roomName(sessionId)).emit("state", state); } async function broadcast(io: Server, sessionId: string) { const entry = broadcastTimers.get(sessionId); if (entry && entry.timer) { entry.again = true; return; } await doBroadcast(io, sessionId); const timer = setTimeout(() => { const current = broadcastTimers.get(sessionId); broadcastTimers.set(sessionId, { timer: null, again: false }); if (current && current.again) void broadcast(io, sessionId); }, BROADCAST_DEBOUNCE_MS); broadcastTimers.set(sessionId, { timer, again: false });
+  if (state) io.to(roomName(sessionId)).emit("state", state);
+}
 
 async function getEventRounds(eventId: string, roundOrderJson?: string | null) {
   const rounds = await prisma.round.findMany({
