@@ -20,6 +20,7 @@ export default function Home() {
         <Link href="/join"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">📱</div><div className="font-bold text-lg">הצטרפות כמשתתף</div><p className="text-brand-muted text-sm mt-1">סרקו QR או הזינו קוד חדר</p></Card></Link>
         <Link href="/captains"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">📝</div><div className="font-bold text-lg">מפקדי צוותים</div><p className="text-brand-muted text-sm mt-1">קישורים והכנת שאלות לצוותים 1, 2 ו־3</p></Card></Link>
         <Link href="/admin"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">⚙️</div><div className="font-bold text-lg">כניסת מנהל</div><p className="text-brand-muted text-sm mt-1">יצירת אירועים, עריכת שאלות וניהול התוכן</p></Card></Link>
+        <a href="https://chatgpt.com/s/t_6a6913c826b081919b8de8bf73fe0a35" target="_blank" rel="noopener noreferrer"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">🤖</div><div className="font-bold text-lg">המשך פיתוח עם ChatGPT</div><p className="text-brand-muted text-sm mt-1">פתיחת שיחת הפיתוח של הפרויקט והמשך שדרוג האפליקציה</p></Card></a>
         <ReloadButton />
       </div>
     </main>
