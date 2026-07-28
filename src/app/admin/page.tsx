@@ -30,6 +30,16 @@ export default async function AdminPage() {
         </ol>
       </Card>
 
+      <Link href="/admin/teams" className="w-full">
+        <Card className="hover:border-brand-gold/60 transition-colors flex items-center justify-between">
+          <div>
+            <div className="font-bold text-lg">שאלות מהצוותים</div>
+            <p className="text-brand-muted text-sm mt-1">איסוף שאלות אנונימי לכל צוות בפלוגה</p>
+          </div>
+          <span className="text-brand-gold text-xl">←</span>
+        </Card>
+      </Link>
+
       <Card className="w-full">
         <NewEventForm />
       </Card>

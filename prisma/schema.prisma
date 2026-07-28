@@ -151,3 +151,22 @@ model RoundResult {
 
   @@unique([sessionId, roundId])
 }
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  submissions QuestionSubmission[]
+}
+
+model QuestionSubmission {
+  id           String   @id @default(cuid())
+  teamId       String
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  questionText String
+  createdAt    DateTime @default(now())
+
+  @@index([teamId])
+}
