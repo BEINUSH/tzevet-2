@@ -180,7 +180,7 @@ export default function HostControlPage() {
           <QRCodeImage value={joinUrl} size={200} />
           <p className="text-brand-muted text-sm break-all">{joinUrl}</p>
           <p className="font-bold text-lg">{state.participants.length} משתתפים בפנים</p>
-          <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+          <div className="flex flex-wrap gap-2 justify-center max-w-lg max-h-48 overflow-y-auto p-1">
             {state.participants.map((p) => (
               <span
                 key={p.id}
