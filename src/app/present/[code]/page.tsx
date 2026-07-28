@@ -124,7 +124,7 @@ export default function PresentPage() {
             </p>
             <div className="flex flex-wrap gap-3 justify-center max-w-4xl">
               <AnimatePresence>
-                {state.participants.map((p) => (
+                {[...state.participants.slice(0, 40).map((p) => ({ id: p.id, name: p.name })), ...(state.participants.length > 40 ? [{ id: "__more__", name: `+${state.participants.length - 40} עוד` }] : [])].map((p) => (
                   <motion.span
                     key={p.id}
                     initial={{ opacity: 0, scale: 0.5, y: 10 }}
