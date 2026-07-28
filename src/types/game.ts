@@ -1,4 +1,4 @@
-export const MAX_PARTICIPANTS = 20;
+export const MAX_PARTICIPANTS = 120;
 
 export const ROUND_TYPES = [
   "MOST_LIKELY",
