@@ -14,159 +14,154 @@ model Event {
   soundEnabled         Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
-
   rounds   Round[]
   sessions Session[]
 }
 
-// Round.type: MOST_LIKELY | WHO_SAID_IT | TRIVIA | HEAD_TO_HEAD | ANONYMOUS_PROMPT | AWARDS
 model Round {
-  id             String  @id @default(cuid())
-  eventId        String
-  event          Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  type           String
-  order          Int
-  title          String?
-  questionText   String
-  timeLimitSec   Int?
-  allowSelfVote  Boolean @default(false)
+  id String @id @default(cuid())
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  type String
+  order Int
+  title String?
+  questionText String
+  timeLimitSec Int?
+  allowSelfVote Boolean @default(false)
   scoringEnabled Boolean @default(false)
-  // Free-form JSON for per-type extras (head-to-head contestant names,
-  // who-said-it correct speaker name, award category label, etc).
   config String?
-
-  options          Option[]
-  votes            Vote[]
+  options Option[]
+  votes Vote[]
   anonymousAnswers AnonymousAnswer[]
-  roundResults     RoundResult[]
-
+  roundResults RoundResult[]
   @@index([eventId, order])
 }
 
 model Option {
-  id        String  @id @default(cuid())
-  roundId   String
-  round     Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  text      String
+  id String @id @default(cuid())
+  roundId String
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  text String
   isCorrect Boolean @default(false)
-  order     Int
-
+  order Int
   votes Vote[]
-
   @@index([roundId])
 }
 
-// Session.status: LOBBY | IN_ROUND | LEADERBOARD | FINAL_AWARDS | ENDED
-// Session.currentRoundPhase: IDLE | VOTING_OPEN | VOTING_CLOSED | REVEALED | DONE
 model Session {
-  id                String   @id @default(cuid())
-  eventId           String
-  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  joinCode          String   @unique
-  hostToken         String
-  roundOrderJson    String?
-  status               String    @default("LOBBY")
-  currentRoundIndex    Int       @default(-1)
-  currentRoundPhase    String    @default("IDLE")
-  votingOpenedAt       DateTime?
-  showLeaderboard      Boolean   @default(false)
-  createdAt            DateTime  @default(now())
-
-  participants     Participant[]
-  votes            Vote[]
+  id String @id @default(cuid())
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  joinCode String @unique
+  hostToken String
+  roundOrderJson String?
+  status String @default("LOBBY")
+  currentRoundIndex Int @default(-1)
+  currentRoundPhase String @default("IDLE")
+  votingOpenedAt DateTime?
+  showLeaderboard Boolean @default(false)
+  createdAt DateTime @default(now())
+  participants Participant[]
+  votes Vote[]
   anonymousAnswers AnonymousAnswer[]
-  roundResults     RoundResult[]
+  roundResults RoundResult[]
 }
 
 model Participant {
-  id          String   @id @default(cuid())
-  sessionId   String
-  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  name        String
-  deviceToken String   @unique
-  connected   Boolean  @default(true)
-  removed     Boolean  @default(false)
-  score       Int      @default(0)
-  joinedAt    DateTime @default(now())
-
-  votesCast     Vote[]            @relation("VoterParticipant")
-  votesReceived Vote[]            @relation("TargetParticipant")
-  answers       AnonymousAnswer[]
-
+  id String @id @default(cuid())
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name String
+  deviceToken String @unique
+  connected Boolean @default(true)
+  removed Boolean @default(false)
+  score Int @default(0)
+  joinedAt DateTime @default(now())
+  votesCast Vote[] @relation("VoterParticipant")
+  votesReceived Vote[] @relation("TargetParticipant")
+  answers AnonymousAnswer[]
   @@index([sessionId])
 }
 
 model Vote {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
   sessionId String
-  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  roundId   String
-  round     Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  roundId String
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
   participantId String
-  participant   Participant @relation("VoterParticipant", fields: [participantId], references: [id], onDelete: Cascade)
-
+  participant Participant @relation("VoterParticipant", fields: [participantId], references: [id], onDelete: Cascade)
   targetParticipantId String?
-  targetParticipant   Participant? @relation("TargetParticipant", fields: [targetParticipantId], references: [id], onDelete: SetNull)
-
+  targetParticipant Participant? @relation("TargetParticipant", fields: [targetParticipantId], references: [id], onDelete: SetNull)
   optionId String?
-  option   Option? @relation(fields: [optionId], references: [id], onDelete: SetNull)
-
-  // "A" | "B" for HEAD_TO_HEAD rounds
+  option Option? @relation(fields: [optionId], references: [id], onDelete: SetNull)
   contestantChoice String?
-
   createdAt DateTime @default(now())
-
   @@unique([sessionId, roundId, participantId])
   @@index([sessionId, roundId])
 }
 
 model AnonymousAnswer {
-  id            String   @id @default(cuid())
-  sessionId     String
-  session       Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  roundId       String
-  round         Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  roundId String
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
   participantId String
-  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  text          String
-  hidden        Boolean   @default(false)
-  shownAt       DateTime?
-  createdAt     DateTime  @default(now())
-
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  text String
+  hidden Boolean @default(false)
+  shownAt DateTime?
+  createdAt DateTime @default(now())
   @@unique([sessionId, roundId, participantId])
   @@index([sessionId, roundId])
 }
 
-// Frozen snapshot written at reveal time, so late votes never change an
-// already-revealed result and the host can re-open a past reveal safely.
 model RoundResult {
-  id         String   @id @default(cuid())
-  sessionId  String
-  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  roundId    String
-  round      Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  roundId String
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
   resultJson String
   revealedAt DateTime @default(now())
-
   @@unique([sessionId, roundId])
 }
 
 model Team {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  order     Int      @default(0)
+  id String @id @default(cuid())
+  name String @unique
+  order Int @default(0)
   createdAt DateTime @default(now())
-
   submissions QuestionSubmission[]
+  members TeamMember[]
+}
+
+model TeamMember {
+  id String @id @default(cuid())
+  teamId String
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name String
+  isCommander Boolean @default(false)
+  order Int @default(0)
+  createdAt DateTime @default(now())
+  @@index([teamId])
 }
 
 model QuestionSubmission {
-  id           String   @id @default(cuid())
-  teamId       String
-  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+  teamId String
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   questionText String
-  createdAt    DateTime @default(now())
-
+  answerText String?
+  createdAt DateTime @default(now())
   @@index([teamId])
+}
+
+model CompanyPoll {
+  id String @id @default(cuid())
+  questionText String
+  optionsJson String
+  createdByTeam String?
+  createdAt DateTime @default(now())
 }
