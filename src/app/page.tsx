@@ -8,7 +8,7 @@ export default function Home() {
     <main className="flex-1 flex flex-col items-center justify-center gap-8 px-6 py-10 text-center" dir="rtl">
       <div className="flex flex-col items-center">
         <div className="mb-5 rounded-2xl bg-white p-3 shadow-sm">
-          <Image src="/yoav-logo.png" alt="לוגו גדוד יואב" width={420} height={135} className="h-auto w-full max-w-sm object-contain" priority />
+          <Image src="/yoav-logo.png" alt="לוגו גדוד יואב" width={420} height={285} className="h-auto w-full max-w-sm object-contain" priority />
         </div>
         <h1 className="text-4xl font-black gold-text">גדוד יואב · פלוגה א׳</h1>
         <p className="text-brand-muted mt-2">מ״פ אהרוני עמוס</p>
