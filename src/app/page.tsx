@@ -1,36 +1,63 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Card } from "@/components/ui/Card";
-import { ReloadButton } from "@/components/ui/ReloadButton";
 
 export default function Home() {
   return (
-    <main className="flex-1 flex flex-col items-center justify-center gap-8 px-6 py-10 text-center" dir="rtl">
-      <div className="flex flex-col items-center">
-        <div className="relative mb-6 w-full max-w-md overflow-hidden rounded-3xl border border-brand-gold/40 bg-white p-2 shadow-[0_18px_55px_rgba(0,0,0,0.45),0_0_30px_rgba(212,175,55,0.14)] sm:p-3">
-          <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/70" />
+    <main className="flex flex-1 items-center px-5 py-8" dir="rtl">
+      <div className="mx-auto flex w-full max-w-lg flex-col items-center text-center">
+        <div className="relative w-full max-w-xs overflow-hidden rounded-3xl border border-brand-gold/30 bg-white p-2 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
           <Image
             src="/yoav-logo.png"
             alt="לוגו גדוד יואב — קורס קצינים"
             width={900}
             height={600}
-            sizes="(max-width: 640px) 88vw, 448px"
+            sizes="(max-width: 640px) 78vw, 320px"
             className="h-auto w-full rounded-2xl object-contain"
             priority
           />
         </div>
-        <h1 className="text-4xl font-black gold-text">גדוד יואב · פלוגה א׳</h1>
-        <p className="text-brand-muted mt-2">מ״פ אהרוני עמוס</p>
-        <p className="text-brand-muted mt-1 text-sm">הפלטפורמה הפלוגתית למשחקים ופעילויות</p>
-      </div>
 
-      <div className="grid gap-4 w-full max-w-sm">
-        <Link href="/host"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">🖥️</div><div className="font-bold text-lg">מסך מנחה</div><p className="text-brand-muted text-sm mt-1">פתיחת חדר ושליטה במהלך הערב</p></Card></Link>
-        <Link href="/join"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">📱</div><div className="font-bold text-lg">הצטרפות כמשתתף</div><p className="text-brand-muted text-sm mt-1">סרקו QR או הזינו קוד חדר</p></Card></Link>
-        <Link href="/captains"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">📝</div><div className="font-bold text-lg">מפקדי צוותים</div><p className="text-brand-muted text-sm mt-1">קישורים והכנת שאלות לצוותים 1, 2 ו־3</p></Card></Link>
-        <Link href="/admin"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">⚙️</div><div className="font-bold text-lg">כניסת מנהל</div><p className="text-brand-muted text-sm mt-1">יצירת אירועים, עריכת שאלות וניהול התוכן</p></Card></Link>
-        <a href="https://chatgpt.com/s/t_6a6913c826b081919b8de8bf73fe0a35" target="_blank" rel="noopener noreferrer"><Card className="hover:border-brand-gold/60 transition-colors"><div className="text-2xl mb-1">🤖</div><div className="font-bold text-lg">המשך פיתוח עם ChatGPT</div><p className="text-brand-muted text-sm mt-1">פתיחת שיחת הפיתוח של הפרויקט והמשך שדרוג האפליקציה</p></Card></a>
-        <ReloadButton />
+        <div className="mt-6">
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">ערב פלוגתי מתחיל כאן</h1>
+          <p className="mx-auto mt-2 max-w-sm text-base text-brand-muted">
+            מצטרפים לחדר, עונים מהטלפון ורואים את התוצאות יחד על המסך.
+          </p>
+        </div>
+
+        <div className="mt-7 flex w-full flex-col gap-3">
+          <Link
+            href="/join"
+            className="group flex min-h-16 items-center justify-between rounded-2xl bg-brand-gold px-5 py-4 text-right text-brand-black shadow-[0_10px_28px_rgba(169,120,44,0.25)] transition hover:-translate-y-0.5 hover:bg-brand-gold-light"
+          >
+            <div>
+              <div className="text-xl font-black">הצטרפות למשחק</div>
+              <div className="mt-0.5 text-sm opacity-75">יש לי קוד חדר</div>
+            </div>
+            <span className="text-3xl transition-transform group-hover:-translate-x-1">←</span>
+          </Link>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/host"
+              className="rounded-2xl border border-brand-border bg-white px-4 py-4 text-right shadow-sm transition hover:border-brand-gold/50 hover:shadow-md"
+            >
+              <span className="text-xl">🖥️</span>
+              <div className="mt-2 font-black">פתיחת משחק</div>
+              <div className="mt-1 text-xs text-brand-muted">למנחה הערב</div>
+            </Link>
+
+            <Link
+              href="/captains"
+              className="rounded-2xl border border-brand-border bg-white px-4 py-4 text-right shadow-sm transition hover:border-brand-gold/50 hover:shadow-md"
+            >
+              <span className="text-xl">📝</span>
+              <div className="mt-2 font-black">הכנת תוכן</div>
+              <div className="mt-1 text-xs text-brand-muted">למפקדי הצוותים</div>
+            </Link>
+          </div>
+        </div>
+
+        <p className="mt-6 text-xs text-brand-muted">גדוד יואב · פלוגה א׳</p>
       </div>
     </main>
   );
