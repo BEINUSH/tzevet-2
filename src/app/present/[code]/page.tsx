@@ -18,6 +18,35 @@ import type {
   PublicSessionState,
 } from "@/types/game";
 
+const INTRO_SLIDES = [
+  {
+    eyebrow: "פלוגה א׳ · גדוד יואב",
+    title: "קורס קציני זו״ק",
+    text: "מקצועות הזיהוי, הסריקה והקבורה",
+  },
+  {
+    eyebrow: "כבודם של חללי צה״ל",
+    title: "יחידות שונות. שליחות אחת.",
+    text: "יס״ר · מאנ״ח · אגד המח״ץ · חמ״לים · יחק״ז · נמ״ח · מלב״ח",
+  },
+  {
+    eyebrow: "רגע, כמעט שכחנו…",
+    title: "וכן, כן — גם יס״ר אוויר!",
+    text: "כולם כאן. עכשיו נראה כמה אתם באמת מכירים זה את זה.",
+    shout: true,
+  },
+  {
+    eyebrow: "בעוד שבוע",
+    title: "דרגות על הכתפיים",
+    text: "יוצאים לפקד בצניעות ובעוצמה — למען קדושי צה״ל",
+  },
+  {
+    eyebrow: "איך הערב עובד?",
+    title: "שלושה צוותים. פלוגה אחת.",
+    text: "תשובה נכונה על צוות אחר מזכה בבונוס · אחרי כל צוות עוצרים למקום ראשון ושני · בסוף מוכתר מנצח הערב",
+  },
+] as const;
+
 export default function PresentPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code || "").toUpperCase();
@@ -57,6 +86,20 @@ export default function PresentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
+  useEffect(() => {
+    if (!state || state.status !== "IN_ROUND" || state.roundIndex >= 0) return;
+    const slide = INTRO_SLIDES[state.roundIndex + INTRO_SLIDES.length];
+    if (!slide || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(`${slide.eyebrow}. ${slide.title}. ${slide.text}`);
+    utterance.lang = "he-IL";
+    utterance.rate = "shout" in slide && slide.shout ? 0.9 : 0.82;
+    utterance.pitch = "shout" in slide && slide.shout ? 1.28 : 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+    return () => window.speechSynthesis.cancel();
+  }, [state?.status, state?.roundIndex]);
+
   if (error) {
     return (
       <main className="flex-1 flex items-center justify-center">
@@ -72,12 +115,12 @@ export default function PresentPage() {
     );
   }
 
-  const checkpointRound =
-    state.status === "IN_ROUND" &&
-    state.roundPhase === "REVEALED" &&
-    (state.roundIndex + 1) % 7 === 0 &&
-    state.roundIndex + 1 < state.totalRounds;
+  const checkpointRound = state.status === "IN_ROUND" && state.showLeaderboard;
   const checkpointLeaders = [...state.participants].sort((a, b) => b.score - a.score).slice(0, 2);
+  const introSlide =
+    state.status === "IN_ROUND" && state.roundIndex < 0
+      ? INTRO_SLIDES[state.roundIndex + INTRO_SLIDES.length]
+      : null;
 
   return (
     <main className="flex-1 flex flex-col relative overflow-hidden px-10 py-8">
@@ -90,10 +133,41 @@ export default function PresentPage() {
       </button>
 
       <AnimatePresence mode="wait">
-        {checkpointRound ? (
+        {introSlide ? (
+          <motion.div
+            key={`intro-${state.roundIndex}`}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.7 }}
+            className="flex-1 flex flex-col items-center justify-center gap-8 text-center relative"
+          >
+            <div className="absolute inset-0 -z-10 opacity-40">
+              <div className="absolute top-[15%] right-[12%] h-72 w-72 rounded-full bg-brand-gold/20 blur-3xl" />
+              <div className="absolute bottom-[10%] left-[10%] h-96 w-96 rounded-full bg-blue-900/40 blur-3xl" />
+            </div>
+            <p className="text-3xl md:text-4xl font-bold text-brand-gold">{introSlide.eyebrow}</p>
+            <h1 className={`font-black gold-text leading-tight ${"shout" in introSlide && introSlide.shout ? "text-7xl md:text-9xl" : "text-6xl md:text-8xl"}`}>
+              {introSlide.title}
+            </h1>
+            <p className="max-w-5xl text-3xl md:text-5xl font-semibold leading-relaxed text-brand-white/90">
+              {introSlide.text}
+            </p>
+            <div className="mt-4 flex gap-3">
+              {INTRO_SLIDES.map((_, index) => (
+                <span
+                  key={index}
+                  className={`h-2 rounded-full transition-all ${
+                    index === state.roundIndex + INTRO_SLIDES.length ? "w-14 bg-brand-gold" : "w-5 bg-brand-gold/25"
+                  }`}
+                />
+              ))}
+            </div>
+          </motion.div>
+        ) : checkpointRound ? (
           <motion.div key={`checkpoint-${state.roundIndex}`} {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
-            <p className="text-3xl text-brand-muted">סיכום ביניים · אחרי {state.roundIndex + 1} שאלות</p>
-            <h1 className="text-6xl font-black gold-text">🏅 מי מוביל כרגע?</h1>
+            <p className="text-3xl text-brand-muted">עצירת סיכום · סיימנו מקטע צוותי</p>
+            <h1 className="text-6xl font-black gold-text">🏅 מובילי הביניים</h1>
             <div className="flex flex-col md:flex-row gap-6 w-full max-w-4xl justify-center">
               {checkpointLeaders.map((participant, index) => (
                 <motion.div
@@ -110,7 +184,7 @@ export default function PresentPage() {
                 </motion.div>
               ))}
             </div>
-            <p className="text-2xl text-brand-muted">הכול עדיין פתוח — ממשיכים!</p>
+            <p className="text-2xl text-brand-muted">ידע על צוות אחר שווה יותר — הכול עדיין פתוח!</p>
           </motion.div>
         ) : state.status === "LOBBY" ? (
           <motion.div key="lobby" {...fade} className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
