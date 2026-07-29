@@ -151,7 +151,7 @@ export async function importRoundsFromCsv(
           timeLimitSec: r.timeLimitSec,
           allowSelfVote: r.allowSelfVote,
           scoringEnabled: r.scoringEnabled,
-          config: r.imageUrl ? JSON.stringify({ imageUrl }) : null,
+          config: r.imageUrl ? JSON.stringify({ imageUrl: r.imageUrl }) : null,
           options: {
             create: r.options.map((o, idx) => ({ text: o.text, isCorrect: o.isCorrect, order: idx })),
           },
