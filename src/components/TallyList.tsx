@@ -16,6 +16,7 @@ export function TallyList({
   size?: "sm" | "md" | "lg";
 }) {
   const maxVotes = Math.max(1, ...tally.map((t) => t.votes));
+  const totalVotes = tally.reduce((sum, entry) => sum + entry.votes, 0);
   const textSize = size === "lg" ? "text-2xl" : size === "sm" ? "text-sm" : "text-base";
   const barHeight = size === "lg" ? "h-8" : size === "sm" ? "h-4" : "h-6";
 
@@ -24,6 +25,7 @@ export function TallyList({
       {tally.map((t, i) => {
         const isWinner = winnerKeys.includes(t.key) && t.votes > 0;
         const isCorrect = correctKeys.includes(t.key);
+        const percentage = totalVotes > 0 ? Math.round((t.votes / totalVotes) * 100) : 0;
         return (
           <motion.div
             key={t.key}
@@ -53,7 +55,9 @@ export function TallyList({
                 transition={{ delay: i * 0.08 + 0.1, duration: 0.6, ease: "easeOut" }}
               />
             </div>
-            <div className={clsx("w-8 text-left font-bold tabular-nums", textSize)}>{t.votes}</div>
+            <div className={clsx("w-24 text-left font-bold tabular-nums", textSize)}>
+              {t.votes} <span className="text-brand-muted text-[0.7em]">({percentage}%)</span>
+            </div>
           </motion.div>
         );
       })}
