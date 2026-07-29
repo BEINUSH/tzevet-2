@@ -73,6 +73,7 @@ model Participant {
   sessionId String
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   name String
+  teamNumber Int?
   deviceToken String @unique
   connected Boolean @default(true)
   removed Boolean @default(false)
