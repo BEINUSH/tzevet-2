@@ -186,7 +186,7 @@ export default function HostControlPage() {
                 key={p.id}
                 className="flex items-center gap-2 rounded-full bg-brand-navy-lighter px-3 py-1.5 text-sm"
               >
-                {p.name}
+                {p.name} · צוות {p.teamNumber ?? "?"}
                 <button
                   onClick={() => call("host:removeParticipant", { participantId: p.id })}
                   className="text-brand-danger font-bold"
@@ -198,12 +198,43 @@ export default function HostControlPage() {
             ))}
           </div>
           <Button size="lg" disabled={state.participants.length < 1 || busy} onClick={() => call("host:startGame")}>
-            🚀 התחלת המשחק
+            🎬 התחלת מצגת הפתיחה
           </Button>
         </Card>
       )}
 
-      {state.status === "IN_ROUND" && round && (
+      {state.status === "IN_ROUND" && state.roundIndex < 0 && (
+        <Card className="flex flex-col gap-4 text-center">
+          <p className="text-brand-gold font-black">מצגת פתיחה · שקופית {state.roundIndex + 6} מתוך 5</p>
+          <p className="text-brand-muted">
+            הקריינות נשמעת במסך ההקרנה. ודאו שעוצמת הקול פתוחה לפני המעבר.
+          </p>
+          {state.roundIndex < -1 ? (
+            <Button size="lg" disabled={busy} onClick={() => call("host:nextIntro")}>
+              השקופית הבאה ←
+            </Button>
+          ) : (
+            <Button size="lg" disabled={busy} onClick={() => call("host:startQuestions")}>
+              🚀 מתחילים את השאלות
+            </Button>
+          )}
+          <Button variant="ghost" disabled={busy} onClick={() => call("host:startQuestions")}>
+            דלג על יתר הפתיח
+          </Button>
+        </Card>
+      )}
+
+      {state.status === "IN_ROUND" && state.showLeaderboard && (
+        <Card className="flex flex-col gap-4 text-center border-brand-gold bg-brand-gold/10">
+          <h2 className="text-2xl font-black gold-text">🏅 עצירת סיכום צוותית</h2>
+          <p className="text-brand-muted">במסך ההקרנה מוצגים כרגע המקום הראשון והשני.</p>
+          <Button size="lg" disabled={busy} onClick={() => call("host:continueAfterCheckpoint")}>
+            ממשיכים למקטע הבא ←
+          </Button>
+        </Card>
+      )}
+
+      {state.status === "IN_ROUND" && round && !state.showLeaderboard && (
         <Card className="flex flex-col gap-4">
           <div>
             <p className="text-brand-muted text-xs">
