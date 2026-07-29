@@ -38,7 +38,8 @@ export function computeMostLikelyResult(
 export function computeChoiceResult(
   round: Round,
   options: Option[],
-  votes: Vote[]
+  votes: Vote[],
+  participants: Participant[] = []
 ): ChoiceResult {
   const tallyMap = new Map<string, number>();
   for (const o of options) tallyMap.set(o.id, 0);
@@ -56,12 +57,18 @@ export function computeChoiceResult(
 
   const scored: Record<string, number> = {};
   if (round.scoringEnabled && correctOptions.length) {
+    const teamMatch = round.title?.match(/צוות\s*([123])/);
+    const questionTeam = round.title === "טריוויה על השמות" ? 2 : teamMatch ? Number(teamMatch[1]) : null;
+    const participantTeams = new Map(participants.map((participant) => [participant.id, participant.teamNumber]));
+    const basePoints = questionTeam === 2 ? 6 : BASE_CORRECT_POINTS;
     const correctVotesInOrder = voteOrder
       .filter((v) => correctOptionIds.has(v.optionId))
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     correctVotesInOrder.forEach((v, idx) => {
       const bonus = SPEED_BONUS[idx] ?? 0;
-      scored[v.participantId] = BASE_CORRECT_POINTS + bonus;
+      const participantTeam = participantTeams.get(v.participantId);
+      const crossTeamBonus = questionTeam && participantTeam && participantTeam !== questionTeam ? 5 : 0;
+      scored[v.participantId] = basePoints + bonus + crossTeamBonus;
     });
   }
 
