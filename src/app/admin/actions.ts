@@ -42,6 +42,19 @@ export async function renameEvent(eventId: string, name: string) {
 export async function deleteEvent(eventId: string) {
   await prisma.event.delete({ where: { id: eventId } });
   revalidatePath("/admin");
+  revalidatePath("/host");
+}
+
+export async function archiveEvent(eventId: string) {
+  await prisma.event.update({ where: { id: eventId }, data: { archivedAt: new Date() } });
+  revalidatePath("/admin");
+  revalidatePath("/host");
+}
+
+export async function restoreEvent(eventId: string) {
+  await prisma.event.update({ where: { id: eventId }, data: { archivedAt: null } });
+  revalidatePath("/admin");
+  revalidatePath("/host");
 }
 
 export async function updateEventDefaults(eventId: string, allowSelfVoteDefault: boolean, soundEnabled: boolean) {
@@ -138,7 +151,7 @@ export async function importRoundsFromCsv(
           timeLimitSec: r.timeLimitSec,
           allowSelfVote: r.allowSelfVote,
           scoringEnabled: r.scoringEnabled,
-          config: r.imageUrl ? JSON.stringify({ imageUrl: r.imageUrl }) : null,
+          config: r.imageUrl ? JSON.stringify({ imageUrl }) : null,
           options: {
             create: r.options.map((o, idx) => ({ text: o.text, isCorrect: o.isCorrect, order: idx })),
           },
