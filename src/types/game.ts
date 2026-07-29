@@ -44,6 +44,7 @@ export type RoundPhase = "IDLE" | "VOTING_OPEN" | "VOTING_CLOSED" | "REVEALED" |
 export interface PublicParticipant {
   id: string;
   name: string;
+  teamNumber: number | null;
   connected: boolean;
   score: number;
 }
