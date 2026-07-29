@@ -50,6 +50,7 @@ export async function buildPublicState(sessionId: string): Promise<PublicSession
   const participants = participantsRaw.map((p) => ({
     id: p.id,
     name: p.name,
+    teamNumber: p.teamNumber,
     connected: p.connected,
     score: p.score,
   }));
