@@ -9,6 +9,7 @@ import { MAX_QUESTIONS_PER_TEAM } from "./constants";
 export function SubmitForm({ teams }: { teams: { id: string; name: string }[] }) {
   const [teamId, setTeamId] = useState("");
   const [text, setText] = useState("");
+  const [answer, setAnswer] = useState("");
   const [remaining, setRemaining] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -28,15 +29,16 @@ export function SubmitForm({ teams }: { teams: { id: string; name: string }[] })
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!teamId || !text.trim()) return;
+    if (!teamId || !text.trim() || !answer.trim()) return;
     setError("");
     setSuccess("");
     startTransition(async () => {
-      const res = await submitQuestion(teamId, text.trim());
+      const res = await submitQuestion(teamId, text.trim(), answer.trim());
       if (res.ok) {
         setText("");
+        setAnswer("");
         setRemaining(res.remaining ?? null);
-        setSuccess("השאלה נשלחה! תודה 🙌");
+        setSuccess("השאלה והתשובה נשלחו! תודה 🙌");
       } else {
         setError(res.error || "משהו השתבש, נסו שוב");
         if (res.remaining !== undefined) setRemaining(res.remaining);
@@ -79,6 +81,19 @@ export function SubmitForm({ teams }: { teams: { id: string; name: string }[] })
           onChange={(e) => setText(e.target.value)}
         />
 
+        <input
+          className="w-full rounded-xl bg-brand-navy-lighter border border-brand-gold/20 px-4 py-3 text-lg focus:outline-none focus:border-brand-gold"
+          placeholder="מה התשובה הנכונה?"
+          aria-label="התשובה הנכונה"
+          value={answer}
+          maxLength={200}
+          disabled={!teamId || full}
+          onChange={(e) => setAnswer(e.target.value)}
+        />
+        <p className="-mt-2 text-sm text-brand-muted">
+          התשובה תוצג למנהל בלבד ולא לשאר המשתתפים.
+        </p>
+
         {error && (
           <p className="text-brand-danger text-sm font-semibold" role="alert">
             {error}
@@ -90,8 +105,8 @@ export function SubmitForm({ teams }: { teams: { id: string; name: string }[] })
           </p>
         )}
 
-        <Button size="lg" type="submit" disabled={pending || !teamId || !text.trim() || full} className="w-full">
-          {pending ? "שולח..." : "שליחת שאלה"}
+        <Button size="lg" type="submit" disabled={pending || !teamId || !text.trim() || !answer.trim() || full} className="w-full">
+          {pending ? "שולח..." : "שליחת שאלה ותשובה"}
         </Button>
       </form>
     </Card>
