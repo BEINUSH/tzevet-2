@@ -41,10 +41,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               className="h-10 w-14 rounded-lg border border-brand-gold/20 bg-white object-contain"
               priority
             />
-            <div className="text-right leading-tight">
-              <div className="text-sm font-black sm:text-base">גדוד יואב · פלוגה א׳</div>
-              <div className="text-[11px] text-brand-muted sm:text-xs">מ״פ אהרוני עמוס</div>
-            </div>
+            <div className="text-sm font-black sm:text-base">גדוד יואב · פלוגה א׳</div>
           </Link>
 
           <Link
