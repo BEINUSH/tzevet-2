@@ -7,8 +7,17 @@ export default function Home() {
   return (
     <main className="flex-1 flex flex-col items-center justify-center gap-8 px-6 py-10 text-center" dir="rtl">
       <div className="flex flex-col items-center">
-        <div className="mb-5 rounded-2xl bg-white p-3 shadow-sm">
-          <Image src="/yoav-logo.png" alt="לוגו גדוד יואב" width={420} height={285} className="h-auto w-full max-w-sm object-contain" priority />
+        <div className="relative mb-6 w-full max-w-md overflow-hidden rounded-3xl border border-brand-gold/40 bg-white p-2 shadow-[0_18px_55px_rgba(0,0,0,0.45),0_0_30px_rgba(212,175,55,0.14)] sm:p-3">
+          <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/70" />
+          <Image
+            src="/yoav-logo.png"
+            alt="לוגו גדוד יואב — קורס קצינים"
+            width={900}
+            height={600}
+            sizes="(max-width: 640px) 88vw, 448px"
+            className="h-auto w-full rounded-2xl object-contain"
+            priority
+          />
         </div>
         <h1 className="text-4xl font-black gold-text">גדוד יואב · פלוגה א׳</h1>
         <p className="text-brand-muted mt-2">מ״פ אהרוני עמוס</p>
