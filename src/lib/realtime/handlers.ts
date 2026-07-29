@@ -78,7 +78,7 @@ async function revealCurrentRoundLocked(sessionId: string) {
     });
   } else if (OPTION_BASED_TYPES.includes(round.type as never)) {
     const votes = await prisma.vote.findMany({ where: { sessionId, roundId: round.id } });
-    const resultPayload = computeChoiceResult(round, round.options, votes);
+    const resultPayload = computeChoiceResult(round, round.options, votes, participants);
     await prisma.roundResult.create({
       data: { sessionId, roundId: round.id, resultJson: JSON.stringify(resultPayload) },
     });
@@ -182,6 +182,25 @@ function shuffle<T>(items: T[]): T[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+function questionTeam(title: string | null): number | null {
+  if (title === "טריוויה על השמות") return 2;
+  const match = title?.match(/צוות\s*([123])/);
+  return match ? Number(match[1]) : null;
+}
+
+function isTeamBoundary(
+  rounds: Awaited<ReturnType<typeof getEventRounds>>,
+  currentIndex: number
+): boolean {
+  const currentTeam = questionTeam(rounds[currentIndex]?.title ?? null);
+  if (!currentTeam) return false;
+  for (let index = currentIndex + 1; index < rounds.length; index += 1) {
+    const nextTeam = questionTeam(rounds[index].title);
+    if (nextTeam) return nextTeam !== currentTeam;
+  }
+  return true;
 }
 
 async function selectSessionRoundIds(eventId: string, roundLimit?: number | null): Promise<string[]> {
@@ -307,6 +326,7 @@ export function registerSocketHandlers(io: Server) {
             data: missing.map(({ name, index }) => ({
               sessionId: session.id,
               name,
+              teamNumber: (index % 3) + 1,
               deviceToken: `demo-bot:${session.id}:${index}`,
               connected: true,
             })),
@@ -331,12 +351,44 @@ export function registerSocketHandlers(io: Server) {
           if (activeCount < 1) throw new Error("צריך לפחות משתתף אחד כדי להתחיל");
           await prisma.session.update({
             where: { id: session.id },
-            data: { status: "IN_ROUND", currentRoundIndex: 0, currentRoundPhase: "IDLE" },
+            data: { status: "IN_ROUND", currentRoundIndex: -5, currentRoundPhase: "IDLE" },
           });
         }).then(
           () => cb({ ok: true }),
           (err: Error) => cb({ ok: false, error: err.message })
         );
+        await broadcast(io, session.id);
+      }
+    );
+
+    socket.on(
+      "host:nextIntro",
+      async ({ code, hostToken }: { code: string; hostToken: string }, cb: Ack = noop) => {
+        const session = await requireHost(code, hostToken);
+        if (!session) return cb({ ok: false, error: "אין הרשאה" });
+        await withLock(session.id, async () => {
+          const fresh = await prisma.session.findUnique({ where: { id: session.id } });
+          if (!fresh || fresh.status !== "IN_ROUND" || fresh.currentRoundIndex >= -1) return;
+          await prisma.session.update({
+            where: { id: fresh.id },
+            data: { currentRoundIndex: fresh.currentRoundIndex + 1 },
+          });
+        });
+        cb({ ok: true });
+        await broadcast(io, session.id);
+      }
+    );
+
+    socket.on(
+      "host:startQuestions",
+      async ({ code, hostToken }: { code: string; hostToken: string }, cb: Ack = noop) => {
+        const session = await requireHost(code, hostToken);
+        if (!session) return cb({ ok: false, error: "אין הרשאה" });
+        await prisma.session.update({
+          where: { id: session.id },
+          data: { currentRoundIndex: 0, currentRoundPhase: "IDLE", showLeaderboard: false },
+        });
+        cb({ ok: true });
         await broadcast(io, session.id);
       }
     );
@@ -644,12 +696,40 @@ export function registerSocketHandlers(io: Server) {
               where: { id: fresh.id },
               data: { status: "FINAL_AWARDS", currentRoundPhase: "DONE" },
             });
+          } else if (isTeamBoundary(rounds, fresh.currentRoundIndex)) {
+            await prisma.session.update({
+              where: { id: fresh.id },
+              data: { showLeaderboard: true, currentRoundPhase: "DONE" },
+            });
           } else {
             await prisma.session.update({
               where: { id: fresh.id },
               data: { currentRoundIndex: nextIndex, currentRoundPhase: "IDLE", votingOpenedAt: null },
             });
           }
+        });
+        cb({ ok: true });
+        await broadcast(io, session.id);
+      }
+    );
+
+    socket.on(
+      "host:continueAfterCheckpoint",
+      async ({ code, hostToken }: { code: string; hostToken: string }, cb: Ack = noop) => {
+        const session = await requireHost(code, hostToken);
+        if (!session) return cb({ ok: false, error: "אין הרשאה" });
+        await withLock(session.id, async () => {
+          const fresh = await prisma.session.findUnique({ where: { id: session.id } });
+          if (!fresh || !fresh.showLeaderboard) return;
+          await prisma.session.update({
+            where: { id: fresh.id },
+            data: {
+              currentRoundIndex: fresh.currentRoundIndex + 1,
+              currentRoundPhase: "IDLE",
+              votingOpenedAt: null,
+              showLeaderboard: false,
+            },
+          });
         });
         cb({ ok: true });
         await broadcast(io, session.id);
@@ -723,12 +803,16 @@ export function registerSocketHandlers(io: Server) {
     // ---------- Participant ----------
     socket.on(
       "participant:join",
-      async ({ code, name }: { code: string; name: string }, cb: Ack = noop) => {
+      async (
+        { code, name, teamNumber }: { code: string; name: string; teamNumber: number },
+        cb: Ack = noop
+      ) => {
         const session = await getSessionByCode(code);
         if (!session) return cb({ ok: false, error: "לא נמצא חדר עם הקוד הזה" });
         if (session.status !== "LOBBY") return cb({ ok: false, error: "המשחק כבר התחיל" });
         const trimmed = name.trim().slice(0, 24);
         if (!trimmed) return cb({ ok: false, error: "יש להזין שם" });
+        if (![1, 2, 3].includes(teamNumber)) return cb({ ok: false, error: "יש לבחור צוות" });
         const activeCount = await prisma.participant.count({
           where: { sessionId: session.id, removed: false },
         });
@@ -736,7 +820,7 @@ export function registerSocketHandlers(io: Server) {
 
         const deviceToken = generateDeviceToken();
         const participant = await prisma.participant.create({
-          data: { sessionId: session.id, name: trimmed, deviceToken },
+          data: { sessionId: session.id, name: trimmed, teamNumber, deviceToken },
         });
         socket.join(roomName(session.id));
         socket.data.role = "participant";
