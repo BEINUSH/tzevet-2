@@ -4,6 +4,7 @@ export const ROUND_TYPES = [
   "MOST_LIKELY",
   "WHO_SAID_IT",
   "TRIVIA",
+  "POLL",
   "HEAD_TO_HEAD",
   "ANONYMOUS_PROMPT",
   "AWARDS",
@@ -14,6 +15,7 @@ export const ROUND_TYPE_LABELS: Record<RoundType, string> = {
   MOST_LIKELY: 'מי הכי...?',
   WHO_SAID_IT: "מי אמר את זה?",
   TRIVIA: "כמה אתם מכירים את הצוות?",
+  POLL: "סקר פלוגתי",
   HEAD_TO_HEAD: "הימור צוותי",
   ANONYMOUS_PROMPT: "תשובות אנונימיות",
   AWARDS: "פרסי הצוות",
@@ -24,6 +26,7 @@ export const DEFAULT_SCORING_ENABLED: Record<RoundType, boolean> = {
   MOST_LIKELY: false,
   WHO_SAID_IT: true,
   TRIVIA: true,
+  POLL: false,
   HEAD_TO_HEAD: true,
   ANONYMOUS_PROMPT: false,
   AWARDS: false,
@@ -33,7 +36,7 @@ export const DEFAULT_SCORING_ENABLED: Record<RoundType, boolean> = {
 // (rather than one of a fixed set of Options).
 export const PARTICIPANT_TARGET_TYPES: RoundType[] = ["MOST_LIKELY", "AWARDS"];
 // Round types backed by Round.options (multiple choice).
-export const OPTION_BASED_TYPES: RoundType[] = ["WHO_SAID_IT", "TRIVIA", "HEAD_TO_HEAD"];
+export const OPTION_BASED_TYPES: RoundType[] = ["WHO_SAID_IT", "TRIVIA", "POLL", "HEAD_TO_HEAD"];
 
 export type SessionStatus = "LOBBY" | "IN_ROUND" | "FINAL_AWARDS" | "ENDED";
 export type RoundPhase = "IDLE" | "VOTING_OPEN" | "VOTING_CLOSED" | "REVEALED" | "DONE";
