@@ -106,6 +106,19 @@ export default function PresentPage() {
     return () => window.speechSynthesis.cancel();
   }, [narrationEnabled, state?.status, state?.roundIndex]);
 
+  useEffect(() => {
+    if (!narrationEnabled || !state?.round || state.status !== "IN_ROUND" || state.roundIndex < 0) return;
+    if (state.roundPhase !== "IDLE" && state.roundPhase !== "VOTING_OPEN") return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(state.round.questionText);
+    utterance.lang = "he-IL";
+    utterance.rate = 0.86;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+    return () => window.speechSynthesis.cancel();
+  }, [narrationEnabled, state?.round?.id]);
+
   if (error) {
     return (
       <main className="flex-1 flex items-center justify-center">
@@ -130,6 +143,41 @@ export default function PresentPage() {
 
   return (
     <main className="flex-1 flex flex-col relative overflow-hidden px-10 py-8">
+      {!narrationEnabled && state.status === "IN_ROUND" && state.roundIndex >= 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setNarrationEnabled(true);
+            if (state.round) {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(state.round.questionText);
+              utterance.lang = "he-IL";
+              utterance.rate = 0.86;
+              window.speechSynthesis.speak(utterance);
+            }
+          }}
+          className="absolute top-5 right-6 z-20 rounded-xl bg-brand-gold px-5 py-3 text-lg font-black text-brand-navy shadow-xl"
+        >
+          🔊 הפעל קריינות שאלות
+        </button>
+      )}
+      {narrationEnabled && state.status === "IN_ROUND" && state.roundIndex >= 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!state.round) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(state.round.questionText);
+            utterance.lang = "he-IL";
+            utterance.rate = 0.86;
+            window.speechSynthesis.speak(utterance);
+          }}
+          className="absolute top-5 right-6 z-20 rounded-xl border border-brand-gold/40 bg-white/90 px-4 py-2 font-bold text-brand-gold"
+        >
+          🔁 הקרא את השאלה
+        </button>
+      )}
+
       <button
         onClick={sound.toggle}
         className="absolute top-6 left-6 text-2xl opacity-50 hover:opacity-100 z-10"
