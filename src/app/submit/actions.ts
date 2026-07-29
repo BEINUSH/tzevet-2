@@ -10,11 +10,15 @@ export async function getTeamStatus(teamId: string): Promise<{ count: number; re
 
 export async function submitQuestion(
   teamId: string,
-  questionText: string
+  questionText: string,
+  answerText: string
 ): Promise<{ ok: boolean; error?: string; count?: number; remaining?: number }> {
-  const trimmed = questionText.trim();
-  if (!trimmed) return { ok: false, error: "השאלה לא יכולה להיות ריקה" };
-  if (trimmed.length > 500) return { ok: false, error: "השאלה ארוכה מדי" };
+  const trimmedQuestion = questionText.trim();
+  const trimmedAnswer = answerText.trim();
+  if (!trimmedQuestion) return { ok: false, error: "השאלה לא יכולה להיות ריקה" };
+  if (!trimmedAnswer) return { ok: false, error: "צריך למלא גם את התשובה הנכונה" };
+  if (trimmedQuestion.length > 500) return { ok: false, error: "השאלה ארוכה מדי" };
+  if (trimmedAnswer.length > 200) return { ok: false, error: "התשובה ארוכה מדי" };
 
   const team = await prisma.team.findUnique({ where: { id: teamId } });
   if (!team) return { ok: false, error: "הצוות לא נמצא" };
@@ -22,7 +26,9 @@ export async function submitQuestion(
   const result = await prisma.$transaction(async (tx) => {
     const count = await tx.questionSubmission.count({ where: { teamId } });
     if (count >= MAX_QUESTIONS_PER_TEAM) return null;
-    await tx.questionSubmission.create({ data: { teamId, questionText: trimmed } });
+    await tx.questionSubmission.create({
+      data: { teamId, questionText: trimmedQuestion, answerText: trimmedAnswer },
+    });
     return count + 1;
   });
 
