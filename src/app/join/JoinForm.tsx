@@ -21,13 +21,17 @@ export function JoinForm() {
   const params = useSearchParams();
   const [code, setCode] = useState((params.get("code") || "").toUpperCase());
   const [name, setName] = useState("");
+  const [teamNumber, setTeamNumber] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isTakingLong, setIsTakingLong] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!code.trim() || !name.trim()) return;
+    if (!code.trim() || !name.trim() || !teamNumber) {
+      setError("יש להזין שם ולבחור צוות");
+      return;
+    }
     setLoading(true);
     setIsTakingLong(false);
     setError("");
@@ -38,6 +42,7 @@ export function JoinForm() {
       const res = await emitWithTimeout<JoinResponse>("participant:join", {
         code: upperCode,
         name: name.trim(),
+        teamNumber,
       });
 
       if (res.ok && res.deviceToken) {
@@ -90,6 +95,25 @@ export function JoinForm() {
             autoComplete="nickname"
             onChange={(e) => setName(e.target.value)}
           />
+          <div className="text-right">
+            <p className="mb-2 text-sm font-bold text-brand-muted">באיזה צוות אתה?</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map((team) => (
+                <button
+                  key={team}
+                  type="button"
+                  onClick={() => setTeamNumber(team)}
+                  className={`rounded-xl border px-2 py-3 font-black transition ${
+                    teamNumber === team
+                      ? "border-brand-gold bg-brand-gold/20 text-brand-gold"
+                      : "border-brand-gold/20 bg-brand-navy-lighter text-brand-white"
+                  }`}
+                >
+                  צוות {team}
+                </button>
+              ))}
+            </div>
+          </div>
           {isTakingLong && (
             <p className="text-brand-muted text-sm" role="status">
               השרת מתעורר — זה עשוי לקחת עוד כמה שניות.
