@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HostPage() {
   const events = await prisma.event.findMany({
+    where: { archivedAt: null },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { rounds: true } } },
   });
