@@ -55,6 +55,7 @@ export default function PresentPage() {
   const [state, setState] = useState<PublicSessionState | null>(null);
   const [error, setError] = useState("");
   const [joinUrl, setJoinUrl] = useState("");
+  const [narrationEnabled, setNarrationEnabled] = useState(false);
 
   useEffect(() => {
     setJoinUrl(`${window.location.origin}/join?code=${code}`);
@@ -86,10 +87,8 @@ export default function PresentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
-  useEffect(() => {
-    if (!state || state.status !== "IN_ROUND" || state.roundIndex >= 0) return;
-    const slide = INTRO_SLIDES[state.roundIndex + INTRO_SLIDES.length];
-    if (!slide || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  function speakSlide(slide: (typeof INTRO_SLIDES)[number]) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(`${slide.eyebrow}. ${slide.title}. ${slide.text}`);
     utterance.lang = "he-IL";
@@ -97,8 +96,15 @@ export default function PresentPage() {
     utterance.pitch = "shout" in slide && slide.shout ? 1.28 : 1;
     utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
+  }
+
+  useEffect(() => {
+    if (!narrationEnabled || !state || state.status !== "IN_ROUND" || state.roundIndex >= 0) return;
+    const slide = INTRO_SLIDES[state.roundIndex + INTRO_SLIDES.length];
+    if (!slide) return;
+    speakSlide(slide);
     return () => window.speechSynthesis.cancel();
-  }, [state?.status, state?.roundIndex]);
+  }, [narrationEnabled, state?.status, state?.roundIndex]);
 
   if (error) {
     return (
@@ -153,6 +159,27 @@ export default function PresentPage() {
             <p className="max-w-5xl text-3xl md:text-5xl font-semibold leading-relaxed text-brand-white/90">
               {introSlide.text}
             </p>
+            {!narrationEnabled && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNarrationEnabled(true);
+                  speakSlide(introSlide);
+                }}
+                className="rounded-2xl border-2 border-brand-gold bg-brand-gold px-8 py-4 text-2xl font-black text-brand-navy shadow-xl"
+              >
+                🔊 הפעל קריינות
+              </button>
+            )}
+            {narrationEnabled && (
+              <button
+                type="button"
+                onClick={() => speakSlide(introSlide)}
+                className="rounded-xl border border-brand-gold/40 px-5 py-2 font-bold text-brand-gold"
+              >
+                🔁 הקרא שוב
+              </button>
+            )}
             <div className="mt-4 flex gap-3">
               {INTRO_SLIDES.map((_, index) => (
                 <span
